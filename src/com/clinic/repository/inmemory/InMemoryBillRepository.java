@@ -97,3 +97,5 @@ public class InMemoryBillRepository implements IBillRepository {
         return "REC-" + receiptSequence.incrementAndGet();
     }
 }
+
+// Atomic sequence increments for invoice IDs and receipts
