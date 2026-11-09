@@ -130,3 +130,4 @@ com.clinic
 ### Clean Repository Artifact Policy
 * **Source & Build Only**: Never track binary artifacts, compiled `.class` files, temporary logs, implementation plans, or source PDF documents on remote Git branches.
 * **Local File Preservation**: Original proposal documents and student project PDFs remain strictly in local storage for instructor and invigilator inspection.
+

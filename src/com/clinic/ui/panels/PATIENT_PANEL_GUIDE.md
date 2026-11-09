@@ -20,3 +20,4 @@ This panel fulfills all patient-related requirements specified in Project #2:
 - **Receptionist**: Full operational authority (Register new walk-in patients, update demographics, search directory).
 - **Administrator**: Read-only audit mode (Can search directory and view registration dates for compliance).
 - **Doctor**: Inaccessible directly from front desk; clinicians only access assigned patient records through the clinical workstation.
+
