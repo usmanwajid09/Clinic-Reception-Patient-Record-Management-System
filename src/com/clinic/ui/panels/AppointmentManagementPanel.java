@@ -1,19 +1,17 @@
 package com.clinic.ui.panels;
 
-import com.clinic.model.Appointment;
-import com.clinic.model.AppointmentStatus;
-import com.clinic.model.Doctor;
-import com.clinic.model.Patient;
+import com.clinic.model.*;
 import com.clinic.service.IAppointmentService;
+import com.clinic.service.IAuthService;
 import com.clinic.service.IDoctorService;
 import com.clinic.service.IPatientService;
+import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.components.StatCard;
 import com.clinic.ui.dialogs.BookAppointmentDialog;
 import com.clinic.ui.dialogs.RescheduleAppointmentDialog;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
-import com.clinic.util.DateTimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,15 +21,14 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Presentation panel for Appointment Scheduling and Queue Management (FR11 - FR16).
- * Enforces strict double-booking collision prevention (FR13),
- * displays doctor's appointment list for selected date (FR16),
- * and handles rescheduling/cancellations (FR14).
+ * Appointment Scheduling, Queue Management, and Conflict Prevention Panel (FR11 - FR16).
+ * Enforces role boundaries: Receptionists schedule & reschedule; Clinicians view their own queue.
  */
 public class AppointmentManagementPanel extends JPanel {
     private final IAppointmentService appointmentService;
     private final IDoctorService doctorService;
     private final IPatientService patientService;
+    private final IAuthService authService;
 
     private JTable appointmentTable;
     private DefaultTableModel tableModel;
@@ -39,16 +36,23 @@ public class AppointmentManagementPanel extends JPanel {
     private JComboBox<String> statusFilter;
     private JTextField dateFilterField;
 
-    private StatCard totalCard;
-    private StatCard scheduledCard;
-    private StatCard completedCard;
+    private StatCard totalScheduledCard;
+    private StatCard totalCompletedCard;
+    private StatCard totalNoShowCard;
+
+    private ModernButton bookBtn;
+    private ModernButton rescheduleBtn;
+    private ModernButton cancelBtn;
+    private ModernButton noShowBtn;
 
     public AppointmentManagementPanel(IAppointmentService appointmentService,
                                       IDoctorService doctorService,
-                                      IPatientService patientService) {
+                                      IPatientService patientService,
+                                      IAuthService authService) {
         this.appointmentService = appointmentService;
         this.doctorService = doctorService;
         this.patientService = patientService;
+        this.authService = authService;
 
         setLayout(new BorderLayout(0, 16));
         setBackground(ThemeColors.BG_LIGHT);
@@ -56,37 +60,44 @@ public class AppointmentManagementPanel extends JPanel {
 
         initComponents();
         loadAppointments();
+        applyRolePermissions();
+    }
+
+    public AppointmentManagementPanel(IAppointmentService appointmentService,
+                                      IDoctorService doctorService,
+                                      IPatientService patientService) {
+        this(appointmentService, doctorService, patientService, null);
     }
 
     private void initComponents() {
-        JPanel topPanel = new JPanel(new BorderLayout(0, 12));
+        JPanel topPanel = new JPanel(new BorderLayout(0, 14));
         topPanel.setOpaque(false);
 
-        // Header Title
+        // Header
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
         JLabel titleLabel = new JLabel("Appointment Scheduling & Queue Management");
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Book consultations, enforce conflict prevention (FR13), track status (FR15), and review queues (FR16)");
+        JLabel subtitleLabel = new JLabel("Queue tracking (FR12), double-booking prevention engine (FR13), rescheduling (FR14), and status audit (FR15-16)");
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
         titlePanel.add(titleLabel, BorderLayout.NORTH);
         titlePanel.add(subtitleLabel, BorderLayout.SOUTH);
 
-        // KPI Summary Cards
+        // KPI Stat Cards
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 14, 0));
         statsPanel.setOpaque(false);
 
-        totalCard = new StatCard("Total Encounters", "0", "Across all clinicians", ThemeColors.INFO);
-        scheduledCard = new StatCard("Active Queue (FR15)", "0", "Awaiting consultation", ThemeColors.WARNING);
-        completedCard = new StatCard("Completed Visits (FR15)", "0", "Successfully finished", ThemeColors.SUCCESS);
+        totalScheduledCard = new StatCard("Active Scheduled", "0", "Awaiting consultation", ThemeColors.INFO);
+        totalCompletedCard = new StatCard("Consultations Completed", "0", "Finalized & billed", ThemeColors.SUCCESS);
+        totalNoShowCard = new StatCard("No-Show / Cancelled", "0", "Unfulfilled appointments", ThemeColors.WARNING);
 
-        statsPanel.add(totalCard);
-        statsPanel.add(scheduledCard);
-        statsPanel.add(completedCard);
+        statsPanel.add(totalScheduledCard);
+        statsPanel.add(totalCompletedCard);
+        statsPanel.add(totalNoShowCard);
 
         // Toolbar: Filters & Actions
         JPanel toolbar = new JPanel(new BorderLayout(16, 0));
@@ -140,22 +151,27 @@ public class AppointmentManagementPanel extends JPanel {
         JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btnBox.setOpaque(false);
 
-        ModernButton bookBtn = new ModernButton("+ Book Appointment (FR11)");
+        noShowBtn = ModernButton.secondary("Mark No-Show (FR15)");
+        noShowBtn.addActionListener(e -> handleMarkNoShow());
+
+        rescheduleBtn = ModernButton.secondary("Reschedule (FR14)");
+        rescheduleBtn.addActionListener(e -> handleReschedule());
+
+        cancelBtn = ModernButton.danger("Cancel (FR14)");
+        cancelBtn.addActionListener(e -> handleCancel());
+
+        bookBtn = new ModernButton("+ Book Appointment (FR11)");
         bookBtn.addActionListener(e -> {
             BookAppointmentDialog dialog = new BookAppointmentDialog(SwingUtilities.getWindowAncestor(this),
                     appointmentService, patientService, doctorService);
             dialog.setVisible(true);
             if (dialog.isBooked()) {
                 loadAppointments();
+                ToastNotification.showSuccess(this, "Appointment Booked", "Patient appointment successfully confirmed.");
             }
         });
 
-        ModernButton rescheduleBtn = ModernButton.secondary("Reschedule (FR14)");
-        rescheduleBtn.addActionListener(e -> handleReschedule());
-
-        ModernButton cancelBtn = ModernButton.danger("Cancel (FR14)");
-        cancelBtn.addActionListener(e -> handleCancel());
-
+        btnBox.add(noShowBtn);
         btnBox.add(rescheduleBtn);
         btnBox.add(cancelBtn);
         btnBox.add(bookBtn);
@@ -179,6 +195,8 @@ public class AppointmentManagementPanel extends JPanel {
 
         appointmentTable = new JTable(tableModel);
         UIStyle.styleTable(appointmentTable);
+        UIStyle.applyStatusBadge(appointmentTable, 7);
+
         appointmentTable.getColumnModel().getColumn(0).setPreferredWidth(60);
         appointmentTable.getColumnModel().getColumn(1).setPreferredWidth(80);
         appointmentTable.getColumnModel().getColumn(2).setPreferredWidth(95);
@@ -186,93 +204,153 @@ public class AppointmentManagementPanel extends JPanel {
         appointmentTable.getColumnModel().getColumn(4).setPreferredWidth(130);
         appointmentTable.getColumnModel().getColumn(5).setPreferredWidth(140);
         appointmentTable.getColumnModel().getColumn(6).setPreferredWidth(110);
-        appointmentTable.getColumnModel().getColumn(7).setPreferredWidth(95);
+        appointmentTable.getColumnModel().getColumn(7).setPreferredWidth(105);
 
         JScrollPane scrollPane = new JScrollPane(appointmentTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER));
         scrollPane.getViewport().setBackground(Color.WHITE);
-
         add(scrollPane, BorderLayout.CENTER);
     }
 
+    /**
+     * Enforces privacy and role capabilities.
+     * Clinicians only see their own queue; Receptionists handle booking & rescheduling.
+     */
+    public void applyRolePermissions() {
+        if (authService == null) return;
+        User user = authService.getCurrentUser().orElse(null);
+        if (user instanceof DoctorUser docUser) {
+            // Clinician mode: Hide booking and cancellation
+            bookBtn.setVisible(false);
+            rescheduleBtn.setVisible(false);
+            cancelBtn.setVisible(false);
+            noShowBtn.setVisible(true);
+
+            // Lock doctor filter to this doctor profile
+            Doctor doc = doctorService.getDoctorById(docUser.getDoctorProfileId()).orElse(null);
+            if (doc != null) {
+                doctorFilter.removeAllItems();
+                doctorFilter.addItem(doc.getName() + " (" + doc.getDoctorId() + ")");
+                doctorFilter.setEnabled(false);
+            }
+        } else if (user != null && user.getRole() == Role.RECEPTIONIST) {
+            bookBtn.setVisible(true);
+            rescheduleBtn.setVisible(true);
+            cancelBtn.setVisible(true);
+            noShowBtn.setVisible(true);
+            doctorFilter.setEnabled(true);
+        } else if (user != null && user.getRole() == Role.ADMINISTRATOR) {
+            bookBtn.setVisible(false);
+            rescheduleBtn.setVisible(false);
+            cancelBtn.setVisible(false);
+            noShowBtn.setVisible(false);
+            doctorFilter.setEnabled(true);
+        }
+    }
+
     public void loadAppointments() {
+        applyRolePermissions();
         filterAppointments();
     }
 
     private void filterAppointments() {
-        tableModel.setRowCount(0);
-        List<Appointment> all = appointmentService.getAllAppointments();
+        User user = authService != null ? authService.getCurrentUser().orElse(null) : null;
+        String filterDoctorId = null;
 
-        String selectedDocStr = (String) doctorFilter.getSelectedItem();
-        String selectedStatus = (String) statusFilter.getSelectedItem();
-        String dateStr = dateFilterField.getText().trim();
-
-        int scheduled = 0;
-        int completed = 0;
-
-        for (Appointment app : all) {
-            if (app.getStatus() == AppointmentStatus.SCHEDULED) scheduled++;
-            if (app.getStatus() == AppointmentStatus.COMPLETED) completed++;
-
-            // Doctor filter
+        if (user instanceof DoctorUser docUser) {
+            filterDoctorId = docUser.getDoctorProfileId();
+        } else {
+            String selectedDocStr = (String) doctorFilter.getSelectedItem();
             if (selectedDocStr != null && !selectedDocStr.equals("All Doctors")) {
-                if (!selectedDocStr.contains(app.getDoctorId())) {
-                    continue;
+                int openIdx = selectedDocStr.lastIndexOf('(');
+                int closeIdx = selectedDocStr.lastIndexOf(')');
+                if (openIdx >= 0 && closeIdx > openIdx) {
+                    filterDoctorId = selectedDocStr.substring(openIdx + 1, closeIdx);
                 }
             }
+        }
 
-            // Status filter
-            if (selectedStatus != null && !selectedStatus.equals("All Statuses")) {
-                if (!app.getStatus().name().equalsIgnoreCase(selectedStatus)) {
-                    continue;
-                }
-            }
+        String selectedStatusStr = (String) statusFilter.getSelectedItem();
+        AppointmentStatus filterStatus = null;
+        if (selectedStatusStr != null && !selectedStatusStr.equals("All Statuses")) {
+            try {
+                filterStatus = AppointmentStatus.valueOf(selectedStatusStr.toUpperCase().replace("-", "_"));
+            } catch (Exception ignored) {}
+        }
 
-            // Date filter
-            if (!dateStr.isEmpty()) {
-                if (!app.getAppointmentDate().toString().equalsIgnoreCase(dateStr)) {
-                    continue;
-                }
-            }
+        LocalDate filterDate = null;
+        String dateText = dateFilterField.getText().trim();
+        if (!dateText.isEmpty()) {
+            try {
+                filterDate = LocalDate.parse(dateText);
+            } catch (Exception ignored) {}
+        }
 
-            Patient patient = patientService.getPatientById(app.getPatientId()).orElse(null);
-            Doctor doctor = doctorService.getDoctorById(app.getDoctorId()).orElse(null);
+        final String finalDocId = filterDoctorId;
+        final AppointmentStatus finalStatus = filterStatus;
+        final LocalDate finalDate = filterDate;
+
+        List<Appointment> list = appointmentService.getAllAppointments().stream()
+                .filter(a -> finalDocId == null || a.getDoctorId().equalsIgnoreCase(finalDocId))
+                .filter(a -> finalStatus == null || a.getStatus() == finalStatus)
+                .filter(a -> finalDate == null || a.getAppointmentDate().equals(finalDate))
+                .toList();
+        renderAppointments(list);
+    }
+
+    private void renderAppointments(List<Appointment> list) {
+        tableModel.setRowCount(0);
+        int scheduledCount = 0;
+        int completedCount = 0;
+        int unfulfilledCount = 0;
+
+        for (Appointment app : list) {
+            Patient p = patientService.getPatientById(app.getPatientId()).orElse(null);
+            Doctor d = doctorService.getDoctorById(app.getDoctorId()).orElse(null);
+            Department dept = d != null ? d.getDepartment() : null;
+
+            if (app.getStatus() == AppointmentStatus.SCHEDULED) scheduledCount++;
+            else if (app.getStatus() == AppointmentStatus.COMPLETED) completedCount++;
+            else unfulfilledCount++;
 
             tableModel.addRow(new Object[]{
                     "#" + app.getTokenNumber(),
                     app.getAppointmentId(),
-                    DateTimeUtil.formatDate(app.getAppointmentDate()),
+                    app.getAppointmentDate().toString(),
                     app.getTimeSlot().getFormatted(),
-                    patient != null ? patient.getName() : app.getPatientId(),
-                    doctor != null ? doctor.getName() : app.getDoctorId(),
-                    doctor != null ? doctor.getDepartment().getName() : "N/A",
-                    app.getStatus().getDisplayName(),
-                    app.getNotes()
+                    p != null ? p.getName() : app.getPatientId(),
+                    d != null ? d.getName() : app.getDoctorId(),
+                    dept != null ? dept.getName() : "General",
+                    app.getStatus().name(),
+                    app.getNotes() != null ? app.getNotes() : ""
             });
         }
 
-        totalCard.setValue(String.valueOf(all.size()));
-        scheduledCard.setValue(String.valueOf(scheduled));
-        completedCard.setValue(String.valueOf(completed));
+        totalScheduledCard.setValue(String.valueOf(scheduledCount));
+        totalCompletedCard.setValue(String.valueOf(completedCount));
+        totalNoShowCard.setValue(String.valueOf(unfulfilledCount));
     }
 
     private void handleReschedule() {
         int row = appointmentTable.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select an appointment from the table to reschedule.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+            ToastNotification.showWarning(this, "Selection Required", "Please select an appointment from the table.");
             return;
         }
 
         String apptId = (String) tableModel.getValueAt(row, 1);
         appointmentService.getAppointmentById(apptId).ifPresent(app -> {
             if (app.getStatus() != AppointmentStatus.SCHEDULED) {
-                JOptionPane.showMessageDialog(this, "Only Scheduled appointments can be rescheduled.", "Action Blocked", JOptionPane.WARNING_MESSAGE);
+                ToastNotification.showWarning(this, "Invalid Status", "Only active Scheduled appointments can be rescheduled.");
                 return;
             }
-            RescheduleAppointmentDialog dialog = new RescheduleAppointmentDialog(SwingUtilities.getWindowAncestor(this), app, appointmentService, doctorService);
+
+            RescheduleAppointmentDialog dialog = new RescheduleAppointmentDialog(SwingUtilities.getWindowAncestor(this),
+                    app, appointmentService, doctorService);
             dialog.setVisible(true);
             if (dialog.isRescheduled()) {
                 loadAppointments();
+                ToastNotification.showSuccess(this, "Rescheduled", "Appointment rescheduled successfully.");
             }
         });
     }
@@ -280,20 +358,52 @@ public class AppointmentManagementPanel extends JPanel {
     private void handleCancel() {
         int row = appointmentTable.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select an appointment from the table to cancel.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+            ToastNotification.showWarning(this, "Selection Required", "Please select an appointment to cancel.");
             return;
         }
 
         String apptId = (String) tableModel.getValueAt(row, 1);
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to cancel appointment #" + apptId + "? (FR14)",
-                "Confirm Cancellation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        appointmentService.getAppointmentById(apptId).ifPresent(app -> {
+            if (app.getStatus() != AppointmentStatus.SCHEDULED) {
+                ToastNotification.showWarning(this, "Invalid Status", "Only active Scheduled appointments can be cancelled.");
+                return;
+            }
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            String reason = JOptionPane.showInputDialog(this, "Enter reason for cancellation (optional):", "Cancellation Reason", JOptionPane.PLAIN_MESSAGE);
-            appointmentService.cancelAppointment(apptId, reason);
-            loadAppointments();
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Cancel Appointment " + apptId + " for Token #" + app.getTokenNumber() + "?",
+                    "Confirm Cancellation", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                appointmentService.cancelAppointment(apptId, "Cancelled by front desk reception");
+                loadAppointments();
+                ToastNotification.showInfo(this, "Cancelled", "Appointment " + apptId + " marked as Cancelled.");
+            }
+        });
+    }
+
+    private void handleMarkNoShow() {
+        int row = appointmentTable.getSelectedRow();
+        if (row < 0) {
+            ToastNotification.showWarning(this, "Selection Required", "Please select an appointment from the table.");
+            return;
         }
+
+        String apptId = (String) tableModel.getValueAt(row, 1);
+        appointmentService.getAppointmentById(apptId).ifPresent(app -> {
+            if (app.getStatus() != AppointmentStatus.SCHEDULED) {
+                ToastNotification.showWarning(this, "Invalid Status", "Only active Scheduled appointments can be marked No-Show.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Mark Token #" + app.getTokenNumber() + " (" + apptId + ") as No-Show?",
+                    "Confirm No-Show", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                appointmentService.updateAppointmentStatus(apptId, AppointmentStatus.NO_SHOW);
+                loadAppointments();
+                ToastNotification.showWarning(this, "No-Show Recorded", "Patient marked as No-Show for Token #" + app.getTokenNumber());
+            }
+        });
     }
 }
-
