@@ -39,6 +39,7 @@ public class TestRunner {
         testBillingAndPrintableReceipts(container.getBillingService(), container.getPatientService(), container.getDoctorService());
         testExecutiveReporting(container.getReportService(), container.getPatientService());
         testSOLIDArchitecturalPrinciples(container);
+        testRoleBasedAccessControlAndPrivacy(container.getAuthService(), container.getDoctorService());
 
         System.out.println("==================================================================");
         System.out.println("TEST RESULTS: " + passed + " PASSED, " + failed + " FAILED");
@@ -290,5 +291,34 @@ public class TestRunner {
 
         // DIP: ServiceContainer injects repository interfaces into services
         assertTrue("SOLID - DIP: High-Level Modules Depend on Abstractions", container.getAppointmentService() != null, "DIP verified through inversion container");
+    }
+
+    private static void testRoleBasedAccessControlAndPrivacy(IAuthService authService, IDoctorService doctorService) {
+        System.out.println("\n--- Testing Module 8: Role-Based Access Control & Privacy Safeguards ---");
+
+        // 1. Authenticate as Doctor (Dr. Muhammad Bilal)
+        User docUser = authService.authenticate("dr.bilal", "demo");
+        assertTrue("RBAC: Doctor Role Authentication", docUser.getRole() == Role.DOCTOR, "Doctor authenticated");
+        assertTrue("RBAC: Doctor Clinical Authority", docUser.canConductConsultations(), "Doctor can conduct clinical examinations");
+        assertTrue("RBAC Privacy: Doctor Denied Front Desk Authority", !docUser.canManageFrontDesk(), "Doctor cannot manage front-desk intake");
+        assertTrue("RBAC Privacy: Doctor Denied Administrative Authority", !docUser.hasAdministrativeAccess(), "Doctor cannot alter clinic configuration");
+
+        if (docUser instanceof DoctorUser du) {
+            assertTrue("RBAC Privacy: Doctor Linked to Dedicated Clinician Profile",
+                    du.getDoctorProfileId().equals("DOC-101") && doctorService.getDoctorById(du.getDoctorProfileId()).isPresent(),
+                    "Doctor queue strictly isolated to DOC-101");
+        }
+
+        // 2. Authenticate as Receptionist (Fatima Noor)
+        User recUser = authService.authenticate("receptionist", "demo");
+        assertTrue("RBAC: Receptionist Role Authentication", recUser.getRole() == Role.RECEPTIONIST, "Receptionist authenticated");
+        assertTrue("RBAC: Receptionist Front Desk Authority", recUser.canManageFrontDesk(), "Receptionist can manage registration and billing");
+        assertTrue("RBAC Privacy: Receptionist Denied Clinical Authority", !recUser.canConductConsultations(), "Receptionist cannot access clinical examinations or diagnoses");
+
+        // 3. Authenticate as Administrator (Usman Wajid)
+        User adminUser = authService.authenticate("admin", "demo");
+        assertTrue("RBAC: Administrator Role Authentication", adminUser.getRole() == Role.ADMINISTRATOR, "Administrator authenticated");
+        assertTrue("RBAC: Administrator Governance Authority", adminUser.hasAdministrativeAccess(), "Admin can manage doctors and view revenue reports");
+        assertTrue("RBAC Privacy: Administrator Denied Clinical Authority", !adminUser.canConductConsultations(), "Admin cannot conduct clinical consultations or prescribe medicines");
     }
 }
