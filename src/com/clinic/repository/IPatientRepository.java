@@ -17,3 +17,5 @@ public interface IPatientRepository extends IRepository<Patient, String> {
      */
     String generateNextPatientId();
 }
+
+// ISP: Segregated patient repository operations
