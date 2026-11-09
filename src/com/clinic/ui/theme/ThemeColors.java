@@ -32,3 +32,5 @@ public final class ThemeColors {
     public static final Color DANGER = new Color(239, 68, 68);          // #EF4444
     public static final Color INFO = new Color(59, 130, 246);           // #3B82F6
 }
+
+// Healthcare teal and slate palette tokens
