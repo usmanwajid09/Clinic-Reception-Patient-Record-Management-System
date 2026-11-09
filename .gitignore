@@ -3,6 +3,9 @@
 IMPLEMENTATION_PLAN.md
 docs/
 artifacts/
+*.ps1
+sources.txt
+
 
 # Compiled class file
 *.class
