@@ -178,25 +178,65 @@ SDA Project/
 
 ---
 
+## 🔐 Role-Based Access Control (RBAC) & Privacy Boundaries
+
+The system strictly enforces role-based interface visibility and medical data privacy in accordance with the Principle of Least Privilege:
+- **Doctor / Clinician**:
+  - Automatically restricted to the **Doctor Clinical Workstation** and **My Scheduled Queue**.
+  - Clinician identity is locked to their authenticated profile (e.g., Dr. Muhammad Bilal, DOC-101).
+  - Doctors **cannot** view patient records or consultation queues belonging to other clinicians.
+  - Front-desk registration, booking, and cashier billing modules are completely inaccessible.
+- **Receptionist**:
+  - Full authority over **Patient Records**, **Doctor Availability Duty**, **Appointment Desk**, and **Billing & Cashier Terminal**.
+  - **Cannot** open doctor clinical consultation files, view confidential diagnostic notes, or write/alter prescriptions.
+- **Administrator**:
+  - Manages **Doctor Profiles**, working days, and time slots (FR6, FR8).
+  - Generates comprehensive **Analytics & Revenue Reports** (FR27 - FR30).
+  - **Cannot** conduct medical diagnoses, write prescriptions, or collect cashier payments.
+
+> Full specification and permission matrix are documented in [`ROLES_AND_AUTHORITY.txt`](ROLES_AND_AUTHORITY.txt).
+
+---
+
+## 🎨 Modern UI & 60 FPS Motion Framework
+
+Unlike default Swing applications, the UI is crafted with a modern, responsive design system:
+- **FlatLaf Modern Look & Feel**: Clean typography (Segoe UI), subtle rounded corners, anti-aliased geometry, and streamlined scrollbars.
+- **60 FPS Animation Engine (`Animator`)**: Smooth cubic easing curves (`easeInOutCubic`, `easeOutQuad`) for interactive controls.
+- **Animated Hover Transitions (`ModernButton`, `StatCard`)**: Color interpolation and dynamic elevation drop-shadows on hover.
+- **Floating Toast Notifications (`ToastNotification`)**: Non-blocking slide-down animated toast banners with auto-dismiss and close controls, replacing abrupt modal dialogs.
+- **Status Badges (`StatusBadge`)**: Pill renderers for appointment and duty status (`AVAILABLE`, `SCHEDULED`, `COMPLETED`, `PAID`, `NO-SHOW`) with colored dots and soft backgrounds.
+
+---
+
 ## 🚀 How to Compile and Run
 
 ### Prerequisites
 - JDK 17 or JDK 21 installed.
 
-### Compilation
-From the `SDA Project` root directory:
-```powershell
-# Create bin directory
-mkdir bin -Force
+### Using Batch Scripts (Windows)
+- **Compile**: Double-click or run `compile.bat`
+- **Run**: Double-click or run `run.bat`
+- **Run Tests**: Double-click or run `test.bat` (48 automated verification tests)
 
-# Compile all Java source files
-javac -d bin (Get-ChildItem -Path src -Filter *.java -Recurse | Select-Object -ExpandProperty FullName)
+### Manual CLI Execution
+```powershell
+# Compile all source files with lib/ dependencies
+cmd /c compile.bat
+
+# Launch desktop application
+java -cp "lib/*;bin" com.clinic.Main
+
+# Run automated tests
+java -cp "lib/*;bin" com.clinic.test.TestRunner
 ```
 
-### Running the Desktop Application
-```powershell
-java -cp bin com.clinic.Main
-```
+---
+
+## 🇵🇰 Pakistani Localization
+- **Currency**: Pakistani Rupee (`Rs. ` / PKR)
+- **Clinic**: Shifa Health & Specialist Clinic, DHA Phase 5, Lahore, Pakistan
+- **Demographics**: Realistic Pakistani clinician profiles, patient records, Pakistani mobile numbers (`0300-...`), and CNIC-compliant emergency contacts.
 
 ---
 
