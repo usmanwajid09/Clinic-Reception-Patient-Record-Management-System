@@ -13,15 +13,15 @@ public class AuthService implements IAuthService {
     private final Map<String, User> userDirectory = new HashMap<>();
 
     public AuthService() {
-        // Pre-configure realistic demo user profiles for instant role switching
-        ReceptionistUser rec = new ReceptionistUser("USR-01", "receptionist", "Emma Watson (Front Desk)", "Desk #1");
-        DoctorUser doc1 = new DoctorUser("USR-02", "dr.sarah", "Dr. Sarah Jenkins (Cardiology)", "DOC-101");
-        DoctorUser doc2 = new DoctorUser("USR-03", "dr.michael", "Dr. Michael Chen (Pediatrics)", "DOC-102");
-        AdminUser admin = new AdminUser("USR-04", "admin", "Clinic Administrator");
+        // Pre-configure realistic demo user profiles for instant role switching (Pakistani names)
+        ReceptionistUser rec = new ReceptionistUser("USR-01", "receptionist", "Fatima Noor (Front Desk Receptionist)", "Desk #1");
+        DoctorUser doc1 = new DoctorUser("USR-02", "dr.bilal", "Dr. Muhammad Bilal (Cardiology)", "DOC-101");
+        DoctorUser doc2 = new DoctorUser("USR-03", "dr.ayesha", "Dr. Ayesha Tariq (Pediatrics)", "DOC-102");
+        AdminUser admin = new AdminUser("USR-04", "admin", "Usman Wajid (Clinic Administrator)");
 
         userDirectory.put("receptionist", rec);
-        userDirectory.put("dr.sarah", doc1);
-        userDirectory.put("dr.michael", doc2);
+        userDirectory.put("dr.bilal", doc1);
+        userDirectory.put("dr.ayesha", doc2);
         userDirectory.put("admin", admin);
 
         // Default session on application start: Receptionist
