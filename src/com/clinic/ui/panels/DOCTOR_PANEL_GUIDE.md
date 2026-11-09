@@ -20,3 +20,4 @@ This panel fulfills all clinician administration, department mapping, and duty a
 - **Administrator**: Full administrative control (Register new clinicians, configure consultation fees, and define working days/slots).
 - **Receptionist**: Restricted directory viewing and daily duty availability toggling (FR9). Button controls for clinician registration and scheduling are hidden.
 - **Doctor**: Read-only colleague directory view.
+

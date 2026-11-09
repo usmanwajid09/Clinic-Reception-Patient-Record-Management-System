@@ -21,3 +21,4 @@ This panel provides a specialized clinical workspace designed exclusively for li
 - **Doctor**: Strictly isolated to the authenticated doctor's profile (e.g. Dr. Muhammad Bilal, DOC-101). Cannot access patients assigned to other clinicians.
 - **Receptionist**: Inaccessible. Receptionists cannot view confidential diagnostic findings or prescribe medications.
 - **Administrator**: Inaccessible for clinical actions (Non-physicians cannot diagnose or prescribe).
+

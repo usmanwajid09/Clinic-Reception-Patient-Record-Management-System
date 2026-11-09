@@ -20,3 +20,4 @@ This panel provides multi-dimensional clinical, operational, and financial analy
 - **Administrator**: Exclusive access. Full access to executive reporting and clinic revenue analytics.
 - **Receptionist**: Inaccessible. Receptionists do not view macro-financial clinic reports.
 - **Doctor**: Inaccessible. Clinicians do not inspect clinic-wide revenue figures.
+

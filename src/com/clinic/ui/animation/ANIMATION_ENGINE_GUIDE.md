@@ -20,3 +20,4 @@ To eliminate the rigid look of traditional desktop Swing templates, this applica
   - Dual-pass Gaussian alpha drop shadows that elevate dynamically on mouse hover.
 - **Live Status Badges (`StatusBadge.java`)**:
   - Table cell pill renderer displaying colored badges with status indicator dots (`● AVAILABLE`, `● SCHEDULED`, `● COMPLETED`, `● PAID`, `● NO_SHOW`).
+

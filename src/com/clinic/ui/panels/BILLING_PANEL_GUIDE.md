@@ -18,3 +18,4 @@ This panel operates as the front-desk cashier terminal for patient payments, fee
 - **Receptionist**: Dedicated Cashier authority (Processes patient payments, issues receipts, inspects unpaid queues).
 - **Doctor**: Strictly separated from cashier billing (Physicians do not handle money or bill collection).
 - **Administrator**: Inaccessible for cashier counter transactions; administrators audit financial totals via Analytics & Revenue reports.
+

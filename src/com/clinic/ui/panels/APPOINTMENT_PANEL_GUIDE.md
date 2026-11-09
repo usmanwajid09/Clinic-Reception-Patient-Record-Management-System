@@ -21,3 +21,4 @@ This panel coordinates all front-desk patient bookings, sequential token assignm
 - **Receptionist**: Full booking, rescheduling, and cancellation authority across all clinic doctors.
 - **Doctor**: Strictly isolated to their own scheduled appointment queue. Booking and cancellation controls are disabled. Can mark patient as No-Show.
 - **Administrator**: Read-only oversight of all clinic queues and booking statistics.
+

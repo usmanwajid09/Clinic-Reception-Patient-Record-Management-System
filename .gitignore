@@ -1,6 +1,7 @@
 # Project Documents & Proposals (do not push to repo)
 *.pdf
 IMPLEMENTATION_PLAN.md
+desktop_app_rules.txt
 docs/
 artifacts/
 *.ps1

@@ -20,3 +20,4 @@ The desktop application adheres to the Principle of Least Privilege and strict m
 - Concrete Subclasses: `DoctorUser.java`, `ReceptionistUser.java`, `AdminUser.java`
 - Session Management: `IAuthService.java` and `AuthService.java`
 - Complete formal authority matrix detailed in `ROLES_AND_AUTHORITY.txt`.
+
