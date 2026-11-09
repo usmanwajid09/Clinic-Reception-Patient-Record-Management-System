@@ -133,4 +133,3 @@ public class LoginFrame extends JFrame {
         }
     }
 }
-
