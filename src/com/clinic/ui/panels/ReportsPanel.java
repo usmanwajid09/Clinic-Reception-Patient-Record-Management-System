@@ -10,6 +10,7 @@ import com.clinic.service.IPatientService;
 import com.clinic.service.IReportService;
 import com.clinic.service.IReportService.*;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 import com.clinic.util.DateTimeUtil;
@@ -65,7 +66,8 @@ public class ReportsPanel extends JPanel {
         // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Clinical Analytics & Executive Reporting");
+        JLabel titleLabel = new JLabel("Clinical Analytics & Executive Reporting", IconFactory.getReportsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

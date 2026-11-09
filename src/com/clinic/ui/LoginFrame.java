@@ -5,6 +5,7 @@ import com.clinic.di.ServiceContainer;
 import com.clinic.model.User;
 import com.clinic.service.IAuthService;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -29,6 +30,7 @@ public class LoginFrame extends JFrame {
         this.authService = container.getAuthService();
 
         setTitle(AppConfig.CLINIC_NAME + " - Sign In");
+        setIconImage(IconFactory.getClinicLogo(64).getImage());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
 
@@ -47,8 +49,7 @@ public class LoginFrame extends JFrame {
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
         headerPanel.setOpaque(false);
 
-        JLabel logoIcon = new JLabel("🏥");
-        logoIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 48));
+        JLabel logoIcon = new JLabel(IconFactory.getClinicLogo(64));
         logoIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel titleLabel = new JLabel(AppConfig.CLINIC_NAME);

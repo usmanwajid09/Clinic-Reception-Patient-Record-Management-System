@@ -7,6 +7,7 @@ import com.clinic.model.TimeSlot;
 import com.clinic.service.IDoctorService;
 import com.clinic.service.ValidationException;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -49,7 +50,8 @@ public class DoctorDialog extends JDialog {
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Doctor Registration");
+        JLabel titleLabel = new JLabel("Doctor Registration", IconFactory.getDoctorsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

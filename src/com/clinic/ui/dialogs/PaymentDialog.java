@@ -9,6 +9,7 @@ import com.clinic.service.IBillingService;
 import com.clinic.service.IDoctorService;
 import com.clinic.service.IPatientService;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -50,7 +51,8 @@ public class PaymentDialog extends JDialog {
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Record Consultation Payment");
+        JLabel titleLabel = new JLabel("Record Consultation Payment", IconFactory.getBillingIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

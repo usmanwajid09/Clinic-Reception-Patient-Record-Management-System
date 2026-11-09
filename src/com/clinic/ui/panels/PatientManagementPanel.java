@@ -10,6 +10,7 @@ import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.dialogs.PatientDialog;
 import com.clinic.ui.dialogs.PatientHistoryDialog;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -61,7 +62,8 @@ public class PatientManagementPanel extends JPanel {
         // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Patient Registration & Medical Records");
+        JLabel titleLabel = new JLabel("Patient Registration & Medical Records", IconFactory.getPatientsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

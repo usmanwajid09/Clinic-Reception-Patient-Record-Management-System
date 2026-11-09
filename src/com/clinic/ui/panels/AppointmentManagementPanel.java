@@ -10,6 +10,7 @@ import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.components.StatCard;
 import com.clinic.ui.dialogs.BookAppointmentDialog;
 import com.clinic.ui.dialogs.RescheduleAppointmentDialog;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -76,7 +77,8 @@ public class AppointmentManagementPanel extends JPanel {
         // Header
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Appointment Scheduling & Queue Management");
+        JLabel titleLabel = new JLabel("Appointment Scheduling & Queue Management", IconFactory.getAppointmentsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

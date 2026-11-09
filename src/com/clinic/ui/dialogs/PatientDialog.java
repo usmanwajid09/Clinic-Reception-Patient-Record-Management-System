@@ -4,6 +4,7 @@ import com.clinic.model.Patient;
 import com.clinic.service.IPatientService;
 import com.clinic.service.ValidationException;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -52,7 +53,8 @@ public class PatientDialog extends JDialog {
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel(existingPatient == null ? "New Patient Registration" : "Edit Patient Profile");
+        JLabel titleLabel = new JLabel(existingPatient == null ? "New Patient Registration" : "Edit Patient Profile", IconFactory.getPatientsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
