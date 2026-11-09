@@ -38,3 +38,5 @@ public class AppointmentValidator {
         }
     }
 }
+
+// Validates date in future and availability
