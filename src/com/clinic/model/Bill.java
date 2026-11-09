@@ -114,3 +114,5 @@ public class Bill {
         return "Bill #" + billId + " - Total: $" + String.format("%.2f", totalAmount) + " (" + paymentStatus + ")";
     }
 }
+
+// FR24: Pure calculation decoupling doctor fee and clinic charge
