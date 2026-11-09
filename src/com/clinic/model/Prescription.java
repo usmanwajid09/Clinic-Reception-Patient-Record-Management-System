@@ -70,3 +70,5 @@ public class Prescription {
         return "Prescription #" + prescriptionId + " (" + items.size() + " items)";
     }
 }
+
+// Thread-safe prescription item collection
