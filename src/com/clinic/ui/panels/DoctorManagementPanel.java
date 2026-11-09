@@ -11,6 +11,7 @@ import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.dialogs.DoctorAvailabilityDialog;
 import com.clinic.ui.dialogs.DoctorDialog;
 import com.clinic.ui.dialogs.DoctorScheduleDialog;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -64,7 +65,8 @@ public class DoctorManagementPanel extends JPanel {
         // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Clinician Directory & Schedule Operations");
+        JLabel titleLabel = new JLabel("Clinician Directory & Schedule Operations", IconFactory.getDoctorsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

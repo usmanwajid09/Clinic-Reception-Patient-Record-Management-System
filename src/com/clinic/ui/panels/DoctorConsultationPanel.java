@@ -6,6 +6,7 @@ import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.dialogs.PatientHistoryDialog;
 import com.clinic.ui.dialogs.PrescriptionItemDialog;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -81,7 +82,8 @@ public class DoctorConsultationPanel extends JPanel {
 
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Doctor Clinical Workstation & Consultation Station");
+        JLabel titleLabel = new JLabel("Doctor Clinical Workstation & Consultation Station", IconFactory.getWorkstationIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
@@ -96,6 +98,8 @@ public class DoctorConsultationPanel extends JPanel {
         doctorContextPanel.setOpaque(false);
 
         doctorSessionBadge = new JLabel();
+        doctorSessionBadge.setIcon(IconFactory.getDoctorsIcon(24));
+        doctorSessionBadge.setIconTextGap(8);
         doctorSessionBadge.setFont(UIStyle.FONT_BOLD);
         doctorSessionBadge.setForeground(ThemeColors.PRIMARY_DARK);
 
@@ -329,7 +333,7 @@ public class DoctorConsultationPanel extends JPanel {
             // Lock session to this doctor profile
             currentDoctor = doctorService.getDoctorById(docUser.getDoctorProfileId()).orElse(null);
             doctorSelector.setVisible(false);
-            doctorSessionBadge.setText("👨‍⚕️ Clinician: " + (currentDoctor != null ? currentDoctor.getName() + " (" + currentDoctor.getSpecialization() + ")" : user.getFullName()));
+            doctorSessionBadge.setText("Clinician: " + (currentDoctor != null ? currentDoctor.getName() + " (" + currentDoctor.getSpecialization() + ")" : user.getFullName()));
             doctorSessionBadge.setVisible(true);
         } else {
             // Administrative preview mode

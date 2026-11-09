@@ -12,6 +12,7 @@ import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.components.StatCard;
 import com.clinic.ui.dialogs.PaymentDialog;
 import com.clinic.ui.dialogs.PrintableReceiptDialog;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -58,7 +59,8 @@ public class BillingManagementPanel extends JPanel {
         // Header
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Billing, Fee Settlement & Receipts");
+        JLabel titleLabel = new JLabel("Billing, Fee Settlement & Receipts", IconFactory.getBillingIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 

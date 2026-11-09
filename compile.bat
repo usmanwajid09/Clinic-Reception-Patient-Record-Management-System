@@ -18,6 +18,8 @@ set COMPILE_ERR=%ERRORLEVEL%
 if exist sources.txt del sources.txt
 
 if %COMPILE_ERR% EQU 0 (
+    if not exist bin\com\clinic\ui\icons mkdir bin\com\clinic\ui\icons
+    copy /Y src\com\clinic\ui\icons\*.png bin\com\clinic\ui\icons\ >nul 2>nul
     echo [SUCCESS] Compilation finished successfully. Classes output to 'bin/'.
 ) else (
     echo [ERROR] Compilation failed with error code %COMPILE_ERR%.

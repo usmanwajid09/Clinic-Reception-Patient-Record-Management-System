@@ -49,6 +49,7 @@ public class MainApplicationFrame extends JFrame {
         this.contentCards = new JPanel(cardLayout);
 
         setTitle(AppConfig.CLINIC_NAME + " - Enterprise Clinic Management System");
+        setIconImage(com.clinic.ui.theme.IconFactory.getClinicLogo(64).getImage());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(AppConfig.APP_WIDTH, AppConfig.APP_HEIGHT);
         setMinimumSize(new Dimension(1040, 700));
@@ -143,7 +144,7 @@ public class MainApplicationFrame extends JFrame {
         // Clinic Branding
         JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         titleBox.setOpaque(false);
-        JLabel clinicTitle = new JLabel("🏥 " + AppConfig.CLINIC_NAME);
+        JLabel clinicTitle = new JLabel("  " + AppConfig.CLINIC_NAME, com.clinic.ui.theme.IconFactory.getClinicLogo(28), JLabel.LEFT);
         clinicTitle.setFont(UIStyle.FONT_HEADER);
         clinicTitle.setForeground(ThemeColors.PRIMARY_DARK);
 
@@ -159,7 +160,13 @@ public class MainApplicationFrame extends JFrame {
         userBox.setOpaque(false);
 
         String userDisplay = currentUser != null ? currentUser.getFullName() : "Guest";
-        userStatusLabel = new JLabel("👤 " + userDisplay);
+        ImageIcon userIcon = switch (role) {
+            case DOCTOR -> com.clinic.ui.theme.IconFactory.getDoctorsIcon(24);
+            case RECEPTIONIST -> com.clinic.ui.theme.IconFactory.getPatientsIcon(24);
+            case ADMINISTRATOR -> com.clinic.ui.theme.IconFactory.getReportsIcon(24);
+        };
+        userStatusLabel = new JLabel(userDisplay, userIcon, JLabel.LEFT);
+        userStatusLabel.setIconTextGap(8);
         userStatusLabel.setFont(UIStyle.FONT_BOLD);
         userStatusLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
@@ -231,20 +238,20 @@ public class MainApplicationFrame extends JFrame {
 
         switch (role) {
             case DOCTOR -> {
-                addNavButton(navMenu, "CONSULTATIONS", "🩺  Clinical Workstation");
-                addNavButton(navMenu, "APPOINTMENTS", "📅  My Appointments Queue");
+                addNavButton(navMenu, "CONSULTATIONS", "Clinical Workstation", com.clinic.ui.theme.IconFactory.getWorkstationIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "My Appointments", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
             }
             case RECEPTIONIST -> {
-                addNavButton(navMenu, "PATIENTS", "📋  Patient Records");
-                addNavButton(navMenu, "DOCTORS", "👨‍⚕️  Doctor Directory & Status");
-                addNavButton(navMenu, "APPOINTMENTS", "📅  Appointment Desk");
-                addNavButton(navMenu, "BILLING", "💳  Billing & Receipts");
+                addNavButton(navMenu, "PATIENTS", "Patient Records", com.clinic.ui.theme.IconFactory.getPatientsIcon(24));
+                addNavButton(navMenu, "DOCTORS", "Doctor Directory", com.clinic.ui.theme.IconFactory.getDoctorsIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "Appointment Desk", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
+                addNavButton(navMenu, "BILLING", "Billing & Receipts", com.clinic.ui.theme.IconFactory.getBillingIcon(24));
             }
             case ADMINISTRATOR -> {
-                addNavButton(navMenu, "DOCTORS", "👨‍⚕️  Doctor Management");
-                addNavButton(navMenu, "REPORTS", "📊  Analytics & Revenue");
-                addNavButton(navMenu, "PATIENTS", "📋  Patient Directory (Audit)");
-                addNavButton(navMenu, "APPOINTMENTS", "📅  All Appointments (Audit)");
+                addNavButton(navMenu, "DOCTORS", "Doctor Management", com.clinic.ui.theme.IconFactory.getDoctorsIcon(24));
+                addNavButton(navMenu, "REPORTS", "Analytics & Revenue", com.clinic.ui.theme.IconFactory.getReportsIcon(24));
+                addNavButton(navMenu, "PATIENTS", "Patient Directory", com.clinic.ui.theme.IconFactory.getPatientsIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "Clinic Appointments", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
             }
         }
 
@@ -262,8 +269,8 @@ public class MainApplicationFrame extends JFrame {
         return sidebar;
     }
 
-    private void addNavButton(JPanel containerPanel, String cardKey, String text) {
-        NavButton btn = new NavButton(text, cardKey);
+    private void addNavButton(JPanel containerPanel, String cardKey, String text, Icon icon) {
+        NavButton btn = new NavButton(text, cardKey, icon);
         btn.addActionListener(e -> showCard(cardKey));
 
         navButtons.put(cardKey, btn);
@@ -314,9 +321,14 @@ public class MainApplicationFrame extends JFrame {
         private float hoverProgress = 0.0f;
         private Timer animTimer;
 
-        public NavButton(String text, String cardKey) {
+        public NavButton(String text, String cardKey, Icon icon) {
             super(text);
             this.cardKey = cardKey;
+
+            if (icon != null) {
+                setIcon(icon);
+                setIconTextGap(12);
+            }
 
             setFont(UIStyle.FONT_BOLD);
             setForeground(ThemeColors.TEXT_ON_DARK);

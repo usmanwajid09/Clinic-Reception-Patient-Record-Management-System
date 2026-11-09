@@ -4,6 +4,7 @@ import com.clinic.model.Bill;
 import com.clinic.model.Doctor;
 import com.clinic.model.Patient;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 import com.clinic.util.ReceiptPrinter;
@@ -42,7 +43,8 @@ public class PrintableReceiptDialog extends JDialog {
         // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Official Payment Receipt");
+        JLabel titleLabel = new JLabel("Official Payment Receipt", IconFactory.getBillingIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
