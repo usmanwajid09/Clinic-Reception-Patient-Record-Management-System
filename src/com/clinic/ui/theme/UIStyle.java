@@ -70,3 +70,5 @@ public final class UIStyle {
         return tf;
     }
 }
+
+// Flat modern styling helpers
