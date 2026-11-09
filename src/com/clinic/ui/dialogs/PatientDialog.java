@@ -85,8 +85,11 @@ public class PatientDialog extends JDialog {
         genderCombo.setBackground(Color.WHITE);
 
         addressField = UIStyle.createStyledTextField(24);
+        addressField.setToolTipText("e.g. House 14, Street 5, Gulberg III, Lahore");
         contactField = UIStyle.createStyledTextField(24);
+        contactField.setToolTipText("e.g. 0300-1234567");
         emergencyContactField = UIStyle.createStyledTextField(24);
+        emergencyContactField.setToolTipText("e.g. Tariq Khan (Father - 0300-7654321)");
 
         int row = 0;
         addFormRow(form, gbc, row++, "Full Name *:", nameField);
@@ -177,3 +180,4 @@ public class PatientDialog extends JDialog {
         return saved;
     }
 }
+

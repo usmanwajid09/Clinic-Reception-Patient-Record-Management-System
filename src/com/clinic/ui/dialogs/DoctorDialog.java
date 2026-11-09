@@ -1,5 +1,6 @@
 package com.clinic.ui.dialogs;
 
+import com.clinic.config.AppConfig;
 import com.clinic.model.Department;
 import com.clinic.model.Doctor;
 import com.clinic.model.TimeSlot;
@@ -73,7 +74,7 @@ public class DoctorDialog extends JDialog {
         specializationField = UIStyle.createStyledTextField(24);
         qualificationField = UIStyle.createStyledTextField(24);
         feeField = UIStyle.createStyledTextField(24);
-        feeField.setText("65.00");
+        feeField.setText("2000.00");
 
         List<Department> departments = doctorService.getAllDepartments();
         departmentCombo = new JComboBox<>(departments.toArray(new Department[0]));
@@ -85,7 +86,7 @@ public class DoctorDialog extends JDialog {
         addFormRow(form, gbc, row++, "Specialization *:", specializationField);
         addFormRow(form, gbc, row++, "Medical Qualifications *:", qualificationField);
         addFormRow(form, gbc, row++, "Department (FR7) *:", departmentCombo);
-        addFormRow(form, gbc, row++, "Consultation Fee ($) *:", feeField);
+        addFormRow(form, gbc, row++, "Consultation Fee (" + AppConfig.CURRENCY_SYMBOL.trim() + ") *:", feeField);
 
         root.add(form, BorderLayout.CENTER);
 
@@ -161,3 +162,4 @@ public class DoctorDialog extends JDialog {
         return saved;
     }
 }
+
