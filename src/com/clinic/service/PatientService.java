@@ -79,3 +79,5 @@ public class PatientService implements IPatientService {
         return consultationRepository.findByPatientId(patientId);
     }
 }
+
+// DIP: Depends on IPatientRepository and IConsultationRepository abstractions
