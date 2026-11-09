@@ -70,5 +70,3 @@ public class InMemoryPatientRepository implements IPatientRepository {
         return "PAT-" + sequence.incrementAndGet();
     }
 }
-
-// ConcurrentHashMap ensures thread safety

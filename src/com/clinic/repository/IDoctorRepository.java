@@ -28,5 +28,3 @@ public interface IDoctorRepository extends IRepository<Doctor, String> {
      */
     String generateNextDoctorId();
 }
-
-// ISP: Segregated doctor repository operations

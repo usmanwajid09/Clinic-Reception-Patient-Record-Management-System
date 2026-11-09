@@ -100,5 +100,3 @@ public class InMemoryConsultationRepository implements IConsultationRepository {
         return "CON-" + sequence.incrementAndGet();
     }
 }
-
-// Chronological ordering of consultation records
