@@ -86,3 +86,5 @@ public class InMemoryDoctorRepository implements IDoctorRepository {
         return "DOC-" + sequence.incrementAndGet();
     }
 }
+
+// Thread-safe doctor storage and department mapping
