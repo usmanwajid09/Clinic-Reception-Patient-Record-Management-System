@@ -42,3 +42,5 @@ public interface IAppointmentRepository extends IRepository<Appointment, String>
      */
     String generateNextAppointmentId();
 }
+
+// FR13: Strict collision checking interface contract
