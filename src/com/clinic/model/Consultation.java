@@ -123,3 +123,5 @@ public class Consultation {
         return "Consultation #" + consultationId + " (" + (completed ? "Completed" : "In-Progress") + ")";
     }
 }
+
+// FR23: Strict immutability guard prevents post-completion tampering
