@@ -72,3 +72,5 @@ public abstract class User {
         return fullName + " (" + role.getDisplayName() + ")";
     }
 }
+
+// LSP: Ensure all subclasses of User maintain uniform permission contract
