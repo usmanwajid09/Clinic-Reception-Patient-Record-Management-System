@@ -1,5 +1,7 @@
 package com.clinic.ui.theme;
 
+import com.clinic.ui.components.StatusBadge;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
@@ -9,7 +11,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 
 /**
- * Aesthetic UI styling helpers and typography for the desktop Swing interface.
+ * Aesthetic UI styling helpers, typography scales, and custom renderers.
  */
 public final class UIStyle {
     private UIStyle() {}
@@ -38,7 +40,7 @@ public final class UIStyle {
 
     public static void styleTable(JTable table) {
         table.setFont(FONT_REGULAR);
-        table.setRowHeight(38);
+        table.setRowHeight(40);
         table.setShowGrid(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(ThemeColors.BORDER_LIGHT);
@@ -49,11 +51,28 @@ public final class UIStyle {
         header.setFont(FONT_BOLD);
         header.setBackground(new Color(241, 245, 249));
         header.setForeground(ThemeColors.TEXT_PRIMARY);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
+        header.setPreferredSize(new Dimension(header.getWidth(), 42));
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, ThemeColors.BORDER));
 
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        // Default cell margins
+        DefaultTableCellRenderer defaultRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object val, boolean isSel, boolean hasFoc, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, val, isSel, hasFoc, row, col);
+                setBorder(new EmptyBorder(0, 12, 0, 12));
+                return c;
+            }
+        };
+        table.setDefaultRenderer(Object.class, defaultRenderer);
+    }
+
+    public static void applyStatusBadge(JTable table, int... columnIndices) {
+        StatusBadge badgeRenderer = new StatusBadge();
+        for (int col : columnIndices) {
+            if (col < table.getColumnCount()) {
+                table.getColumnModel().getColumn(col).setCellRenderer(badgeRenderer);
+            }
+        }
     }
 
     public static JPanel createCard() {
@@ -70,5 +89,3 @@ public final class UIStyle {
         return tf;
     }
 }
-
-// Flat modern styling helpers
