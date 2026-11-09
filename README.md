@@ -200,13 +200,19 @@ java -cp bin com.clinic.Main
 
 ---
 
-## 📄 Implementation Plan Roadmap
+## 🧩 SOLID & SDA Design Principles Applied
 
-The detailed implementation plan is documented in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md). Implementation is divided into 7 structured phases:
-1. **Phase 1**: Domain Models & Thread-safe Core Repositories
-2. **Phase 2**: Business Logic Services & Conflict Validation Rules
-3. **Phase 3**: Main Desktop Shell & Role-Based Navigation Frame
-4. **Phase 4**: Patient & Doctor Management GUI Panels
-5. **Phase 5**: Appointment Scheduling & Double-Booking Prevention GUI
-6. **Phase 6**: Doctor Consultation Station & Electronic Prescription Builder
-7. **Phase 7**: Billing, Printable Receipts & Analytical Reports Engine
+This project explicitly adheres to the **SOLID Design Principles** and **Software Design & Analysis (SDA)** architectural standards:
+
+1. **Single Responsibility Principle (SRP)**:
+   - Every class has one reason to change. Business logic resides in dedicated services (`PatientService`, `AppointmentService`, etc.), persistence logic is isolated in repositories (`PatientRepository`), receipt formatting is isolated in `ReceiptPrinter`, and UI presentation resides strictly in GUI panels.
+2. **Open/Closed Principle (OCP)**:
+   - System modules are open for extension but closed for modification through interface-driven abstractions (`IPatientRepository`, `IDoctorRepository`, `IBillingStrategy`, `IReportExporter`).
+3. **Liskov Substitution Principle (LSP)**:
+   - Subtypes (`ReceptionistUser`, `DoctorUser`, `AdminUser`) are cleanly substitutable for the base `User` class without unexpected exceptions or behavior violations.
+4. **Interface Segregation Principle (ISP)**:
+   - Interfaces are highly focused and segregated (`Searchable`, `PrintableReport`, `Repository<T, ID>`) so classes are never forced to implement methods they do not require.
+5. **Dependency Inversion Principle (DIP)**:
+   - High-level business services depend on abstractions (repository interfaces) rather than low-level concrete implementations. Dependencies are injected via constructors.
+
+
