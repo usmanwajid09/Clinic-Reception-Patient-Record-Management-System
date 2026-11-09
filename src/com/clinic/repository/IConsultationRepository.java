@@ -35,3 +35,5 @@ public interface IConsultationRepository extends IRepository<Consultation, Strin
      */
     String generateNextConsultationId();
 }
+
+// FR22: Patient consultation history query specification
