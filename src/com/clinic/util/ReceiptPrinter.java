@@ -120,3 +120,5 @@ public class ReceiptPrinter implements Printable {
         return false;
     }
 }
+
+// FR26: Printable invoice receipt using java.awt.print.Printable
