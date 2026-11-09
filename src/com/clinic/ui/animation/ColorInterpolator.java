@@ -30,3 +30,4 @@ public final class ColorInterpolator {
         return new Color(color.getRed(), color.getGreen(), color.getBlue(), clampedAlpha);
     }
 }
+

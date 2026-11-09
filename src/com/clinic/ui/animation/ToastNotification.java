@@ -223,3 +223,4 @@ public class ToastNotification extends JPanel {
         show(parent, Type.WARNING, title, message);
     }
 }
+

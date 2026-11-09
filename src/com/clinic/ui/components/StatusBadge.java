@@ -97,3 +97,4 @@ public class StatusBadge extends DefaultTableCellRenderer {
         g2.dispose();
     }
 }
+

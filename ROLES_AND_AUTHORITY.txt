@@ -173,3 +173,4 @@ admin           Usman Wajid (Clinic Administrator)        ADMINISTRATOR
 --------------------------------------------------------------------------------
 * Switch between any role profile instantly via the "Switch Role / Logout" header button.
 ================================================================================
+
