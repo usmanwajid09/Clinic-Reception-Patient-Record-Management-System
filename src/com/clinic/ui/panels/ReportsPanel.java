@@ -217,6 +217,7 @@ public class ReportsPanel extends JPanel {
         };
         JTable table = new JTable(revenueModel);
         UIStyle.styleTable(table);
+        UIStyle.applyStatusBadge(table, 7);
 
         panel.add(new JScrollPane(table), BorderLayout.CENTER);
         return panel;
@@ -312,4 +313,3 @@ public class ReportsPanel extends JPanel {
         }
     }
 }
-
