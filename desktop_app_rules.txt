@@ -1,0 +1,132 @@
+# Custom Rules for Clinic Reception & Patient Record Management Desktop System
+
+This document outlines the coding standards, repository workflow, architectural guidelines, and UI motion standards for the Java Swing Desktop Application. All developers and AI assistants working on this repository must strictly adhere to these rules.
+
+---
+
+## 1. Git & GitHub Workflow (Mandatory)
+Every time a code modification, new feature, panel upgrade, or bug fix is implemented:
+* **Never commit directly to `main` for unreviewed panel features**: Always develop on a dedicated feature or bug-fix branch.
+  - Branch naming conventions:
+    - Panel features: `feature/<panel-name>` (e.g., `feature/patient-management-panel`, `feature/doctor-consultation-panel`)
+    - Subsystem features: `feature/<name>` (e.g., `feature/motion-animation-ui`, `feature/billing-cashier-engine`)
+    - Bug fixes: `bugfix/<issue-name>` (e.g., `bugfix/double-booking-validation`)
+* **Stage & Commit**: Write clean, atomic, descriptive commit messages adhering strictly to the Conventional Commits specification:
+  - `feat(<scope>): add description`
+  - `fix(<scope>): correct validation or conflict bug`
+  - `refactor(<scope>): modernize component or architecture`
+  - `docs(<scope>): update specification or README`
+  - `test(<scope>): add regression test case`
+* **Push & Multi-Branch Integrity**: Push the local feature branch to the remote origin (`git push origin <branch-name>`).
+* **Main Branch Role**: The `main` branch acts as the production-stable integration trunk containing the combination of all finalized panels, services, and verification suites.
+* **Pull Requests & Code Reviews**: Open a Pull Request targeting `main` (using GitHub CLI `gh pr create` or web UI) with a structured technical summary and verification checklist. Submit an architectural code review prior to merge.
+
+---
+
+## 2. Code Quality & Architectural Standards (Java 21 & SOLID)
+
+### Type Safety & Language Standards
+* **Java 21 Core**: Utilize modern language features including pattern matching (`instanceof`), immutable records, sealed interfaces where applicable, and typed collections.
+* **Strict Null Safety & Encapsulation**: Use `Objects.requireNonNull(...)` in domain model constructors. Never expose raw mutable collections—wrap them with `Collections.unmodifiableList(...)` or `Collections.unmodifiableSet(...)`.
+* **Zero Raw Types**: Never use raw types (e.g., always use `JComboBox<Doctor>`, `List<Appointment>`, `Optional<Patient>`).
+* **Thread Safety**: UI modifications must execute on the Event Dispatch Thread (EDT) via `SwingUtilities.invokeLater(...)`. Service and repository singletons must ensure thread safety (`ConcurrentHashMap`, atomic sequence generators, or synchronization guards).
+
+### SOLID Principles Adherence
+* **Single Responsibility Principle (SRP)**:
+  - Repositories only persist data.
+  - Validators only validate business constraints (`PatientValidator`, `DoctorValidator`, `AppointmentValidator`).
+  - Services orchestrate business logic and transactions (`PatientService`, `AppointmentService`, etc.).
+  - UI Panels only handle view rendering and user interactions.
+* **Open/Closed Principle (OCP)**:
+  - All repositories and services implement clean interfaces (`IPatientService`, `IDoctorRepository`). New behaviors or data stores extend interfaces without modifying existing caller code.
+* **Liskov Substitution Principle (LSP)**:
+  - User subtypes (`DoctorUser`, `ReceptionistUser`, `AdminUser`) are fully substitutable for `User` without breaking contracts.
+* **Interface Segregation Principle (ISP)**:
+  - Interfaces are segregated and minimal. Clients never depend on methods they do not invoke.
+* **Dependency Inversion Principle (DIP)**:
+  - High-level panels and services depend exclusively on abstractions (interfaces), assembled through the central dependency injection container (`ServiceContainer`).
+
+### GUI Component Splitting & Modularization
+* **Component Boundaries**: Keep panels focused. If a UI panel exceeds 350 lines, decompose dialogs, form sections, and tables into separate classes under `com.clinic.ui.components` and `com.clinic.ui.dialogs`.
+* **Reusable Primitives**: Common controls (`ModernButton`, `StatCard`, `StatusBadge`, input styling) must reside in `com.clinic.ui.components` for uniform design consistency.
+
+---
+
+## 3. Styling & UI Design (FlatLaf & 60 FPS Motion Framework)
+
+### Modern FlatLaf Design System
+* **Look and Feel**: Initialize `FlatLightLaf` via `ThemeManager` with graceful fallback to native System L&F.
+* **Component Geometry**: Enforce rounded corners across the system:
+  - `Button.arc = 10`
+  - `Component.arc = 8`
+  - `TextComponent.arc = 8`
+  - `ScrollBar.thumbArc = 999` (streamlined modern pill scrollbars)
+* **Table Styling**: Set standard row heights to 40px, hide vertical gridlines, apply soft light borders (`#E2E8F0`), and use soft teal highlight for selected rows (`#CCFBF1`).
+
+### Healthcare Palette Tokens
+* **Primary Teal**: `#0D9488` (Dark: `#0F766E`, Light: `#CCFBF1`)
+* **Sidebar Slate**: Dark background `#0F172A`, Hover `#1E293B`, Active `#0D9488`
+* **Surface & Background**: Pure white card surface `#FFFFFF`, Canvas `#F8FAFC`
+* **Text Scale**: Primary `#0F172A`, Secondary `#64748B`, Muted `#94A3B8`, Light `#F1F5F9`
+* **Status Colors**:
+  - Success / Available / Paid: Emerald `#10B981` (Tints: `#ECFDF5`, `#DCFCE7`)
+  - Info / Scheduled: Sky Blue `#0284C7` (Tint: `#E0F2FE`)
+  - Warning / No-Show: Amber `#F59E0B` (Tint: `#FEF3C7`)
+  - Danger / Cancelled / Unavailable: Rose `#EF4444` (Tint: `#FFF1F2`)
+
+### 60 FPS Motion & Animations
+* **Smooth Transitions (`Animator.java`)**:
+  - 60 FPS frame rate (~16ms per frame) for all hover and sliding transitions.
+  - Apply cubic and quad easing curves (`easeInOutCubic`, `easeOutQuad`) instead of harsh linear snaps.
+* **Color Interpolation (`ColorInterpolator.java`)**:
+  - Buttons (`ModernButton`) and sidebar items (`NavButton`) interpolate background colors smoothly over 130–150ms on mouse enter and exit.
+* **Card Hover Elevation (`StatCard.java`)**:
+  - Dual-pass Gaussian alpha shadows elevate dynamically when the mouse enters KPI stat cards.
+* **Floating Slide-in Toast Notifications (`ToastNotification.java`)**:
+  - Replaces abrupt modal dialogs (`JOptionPane`).
+  - Slides down with ease-out cubic animation from the top-right corner, shows color-coded icon and title, and auto-dismisses smoothly after 3.2 seconds.
+* **Status Badges (`StatusBadge.java`)**:
+  - Renders soft pill badges with anti-aliased live status indicator dots (`● AVAILABLE`, `● SCHEDULED`, `● COMPLETED`, `● PAID`, `● NO_SHOW`).
+
+---
+
+## 4. Architecture & Layered Package Structure
+
+Strict multi-tier architecture must be maintained across all packages:
+```
+com.clinic
+├── config/              # Application settings, branding, fee configurations
+├── di/                  # Dependency Injection container (DIP)
+├── model/               # Domain entities (Patient, Doctor, Appointment, Bill, User)
+├── repository/          # Repository interfaces & data contracts
+│   └── inmemory/        # Thread-safe in-memory stores with atomic sequences
+├── service/             # Business logic orchestration & conflict engines
+├── validation/          # Domain validators implementing IValidator<T>
+├── util/                # Formatting, printing (ReceiptPrinter), date helpers
+└── ui/                  # Presentation layer (Java Swing)
+    ├── animation/       # 60 FPS Animator, ColorInterpolator, ToastNotification
+    ├── components/      # ModernButton, StatCard, StatusBadge
+    ├── dialogs/         # Modal forms (Book, Reschedule, Prescribe, Receipt)
+    ├── panels/          # Panel views (Patients, Doctors, Appointments, Consultations, Billing, Reports)
+    └── theme/           # ThemeColors, ThemeManager, UIStyle
+```
+
+---
+
+## 5. Performance, Medical Privacy, RBAC & Accessibility
+
+### Medical Data Privacy & Least Privilege
+* **Strict Clinician Isolation**: Doctors only see their own assigned patients and appointment queues (FR16, FR17). A doctor cannot access another doctor's private records.
+* **Role Segregation**:
+  - Receptionists cannot view clinical diagnoses or alter doctor prescriptions.
+  - Administrators cannot conduct consultations or write electronic prescriptions.
+  - Doctors cannot access front-desk cashier billing or view clinic revenue reports.
+* **Record Immutability (FR23)**: Finalized consultation records are permanently locked against post-completion modification.
+
+### Performance & Memory
+* **No Blocking I/O on UI Thread**: Long-running background processes or calculations must run asynchronously without freezing the UI.
+* **Clean Garbage Collection**: Dismissed dialogs and completed animation timers must be disposed of properly to avoid memory leaks.
+
+### Clean Repository Artifact Policy
+* **Source & Build Only**: Never track binary artifacts, compiled `.class` files, temporary logs, implementation plans, or source PDF documents on remote Git branches.
+* **Local File Preservation**: Original proposal documents and student project PDFs remain strictly in local storage for instructor and invigilator inspection.
