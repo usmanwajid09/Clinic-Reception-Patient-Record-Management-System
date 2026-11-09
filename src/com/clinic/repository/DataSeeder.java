@@ -166,3 +166,5 @@ public class DataSeeder {
         appointmentRepo.save(todayAppt4);
     }
 }
+
+// Initial clinical seed dataset for live demonstration
