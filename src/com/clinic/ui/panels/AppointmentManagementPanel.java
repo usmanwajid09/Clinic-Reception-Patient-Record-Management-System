@@ -296,3 +296,4 @@ public class AppointmentManagementPanel extends JPanel {
         }
     }
 }
+

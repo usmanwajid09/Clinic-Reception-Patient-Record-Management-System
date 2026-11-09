@@ -145,3 +145,4 @@ public class RescheduleAppointmentDialog extends JDialog {
         return rescheduled;
     }
 }
+

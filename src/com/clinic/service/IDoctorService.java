@@ -33,3 +33,4 @@ public interface IDoctorService {
 
     Department registerDepartment(String name, String description);
 }
+

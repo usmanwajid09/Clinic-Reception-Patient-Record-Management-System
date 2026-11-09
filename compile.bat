@@ -15,3 +15,4 @@ if %ERRORLEVEL% EQU 0 (
     echo [ERROR] Compilation failed.
 )
 pause
+

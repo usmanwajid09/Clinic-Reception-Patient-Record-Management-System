@@ -18,3 +18,4 @@ public interface IAuthService {
     List<User> getAvailableDemoUsers();
     void logout();
 }
+

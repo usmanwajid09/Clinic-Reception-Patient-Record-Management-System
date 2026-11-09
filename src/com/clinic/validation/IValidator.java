@@ -10,3 +10,4 @@ import com.clinic.service.ValidationException;
 public interface IValidator<T> {
     void validate(T target) throws ValidationException;
 }
+

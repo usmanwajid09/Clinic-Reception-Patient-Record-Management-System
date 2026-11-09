@@ -25,3 +25,4 @@ public class AdminUser extends User {
         return true;
     }
 }
+

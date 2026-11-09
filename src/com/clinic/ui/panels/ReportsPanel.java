@@ -312,3 +312,4 @@ public class ReportsPanel extends JPanel {
         }
     }
 }
+

@@ -30,3 +30,4 @@ public interface IAppointmentService {
 
     Optional<Appointment> getAppointmentById(String appointmentId);
 }
+

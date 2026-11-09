@@ -5,3 +5,4 @@ echo ========================================================
 
 java -cp bin com.clinic.test.TestRunner
 pause
+

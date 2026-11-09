@@ -29,3 +29,4 @@ public interface IConsultationService {
 
     List<Consultation> getConsultationsByDateRange(LocalDate startDate, LocalDate endDate);
 }
+

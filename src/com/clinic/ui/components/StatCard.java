@@ -59,3 +59,4 @@ public class StatCard extends JPanel {
         subtextLabel.setText(subtext);
     }
 }
+

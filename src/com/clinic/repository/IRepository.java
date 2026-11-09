@@ -18,3 +18,4 @@ public interface IRepository<T, ID> {
     void deleteById(ID id);
     long count();
 }
+

@@ -78,3 +78,4 @@ public interface IReportService {
             List<Bill> bills
     ) {}
 }
+

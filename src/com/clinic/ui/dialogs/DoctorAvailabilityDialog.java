@@ -143,3 +143,4 @@ public class DoctorAvailabilityDialog extends JDialog {
         return updated;
     }
 }
+

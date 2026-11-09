@@ -444,3 +444,4 @@ public class DoctorConsultationPanel extends JPanel {
         }
     }
 }
+
