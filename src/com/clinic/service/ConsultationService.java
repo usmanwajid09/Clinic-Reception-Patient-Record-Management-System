@@ -134,3 +134,5 @@ public class ConsultationService implements IConsultationService {
         return consultationRepository.findByDateRange(startDate, endDate);
     }
 }
+
+// FR23: Locks consultation against subsequent unauthorized modifications
