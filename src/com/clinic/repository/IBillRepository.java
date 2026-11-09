@@ -36,3 +36,5 @@ public interface IBillRepository extends IRepository<Bill, String> {
      */
     String generateNextReceiptNumber();
 }
+
+// FR26: Sequential receipt token contract
