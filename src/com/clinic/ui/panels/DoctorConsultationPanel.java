@@ -2,12 +2,12 @@ package com.clinic.ui.panels;
 
 import com.clinic.model.*;
 import com.clinic.service.*;
+import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.dialogs.PatientHistoryDialog;
 import com.clinic.ui.dialogs.PrescriptionItemDialog;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
-import com.clinic.util.DateTimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,9 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Presentation panel for Doctor Clinical Workstation & Electronic Prescriptions (FR17 - FR23).
- * Enables clinicians to open scheduled patient files (FR17), record findings (FR18),
- * prescribe medications (FR19 - FR21), and lock completed consultations (FR23).
+ * Doctor Clinical Workstation and Electronic Prescribing System (FR17 - FR23).
+ * Enforces strict clinician identity isolation and medical record privacy.
  */
 public class DoctorConsultationPanel extends JPanel {
     private final IConsultationService consultationService;
@@ -29,7 +28,8 @@ public class DoctorConsultationPanel extends JPanel {
     private final IDoctorService doctorService;
     private final IAuthService authService;
 
-    // Active Consultation State
+    // Active Clinical Session Context
+    private Doctor currentDoctor;
     private Appointment activeAppointment;
     private Patient activePatient;
     private Consultation activeConsultation;
@@ -37,6 +37,7 @@ public class DoctorConsultationPanel extends JPanel {
 
     // UI Elements
     private JComboBox<Doctor> doctorSelector;
+    private JLabel doctorSessionBadge;
     private DefaultListModel<Appointment> queueListModel;
     private JList<Appointment> queueList;
 
@@ -69,6 +70,7 @@ public class DoctorConsultationPanel extends JPanel {
         setBorder(new EmptyBorder(24, 24, 24, 24));
 
         initComponents();
+        resolveActiveDoctorContext();
         loadDoctorQueue();
     }
 
@@ -90,30 +92,36 @@ public class DoctorConsultationPanel extends JPanel {
         titlePanel.add(titleLabel, BorderLayout.NORTH);
         titlePanel.add(subtitleLabel, BorderLayout.SOUTH);
 
-        JPanel doctorPickerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        doctorPickerPanel.setOpaque(false);
-        JLabel docLabel = new JLabel("Clinician Session:");
-        docLabel.setFont(UIStyle.FONT_BOLD);
+        JPanel doctorContextPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        doctorContextPanel.setOpaque(false);
+
+        doctorSessionBadge = new JLabel();
+        doctorSessionBadge.setFont(UIStyle.FONT_BOLD);
+        doctorSessionBadge.setForeground(ThemeColors.PRIMARY_DARK);
+
         List<Doctor> doctors = doctorService.getAllDoctors();
         doctorSelector = new JComboBox<>(doctors.toArray(new Doctor[0]));
         doctorSelector.setFont(UIStyle.FONT_REGULAR);
         doctorSelector.setBackground(Color.WHITE);
-        doctorSelector.addActionListener(e -> loadDoctorQueue());
+        doctorSelector.addActionListener(e -> {
+            currentDoctor = (Doctor) doctorSelector.getSelectedItem();
+            loadDoctorQueue();
+        });
 
-        doctorPickerPanel.add(docLabel);
-        doctorPickerPanel.add(doctorSelector);
+        doctorContextPanel.add(doctorSessionBadge);
+        doctorContextPanel.add(doctorSelector);
 
         topPanel.add(titlePanel, BorderLayout.WEST);
-        topPanel.add(doctorPickerPanel, BorderLayout.EAST);
+        topPanel.add(doctorContextPanel, BorderLayout.EAST);
         add(topPanel, BorderLayout.NORTH);
 
-        // Main Workspace Split (Left: Queue, Right: Clinical Record Editor)
+        // Split Layout (Queue on Left, Consultation Editor on Right)
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(320);
+        splitPane.setDividerLocation(340);
         splitPane.setBorder(null);
         splitPane.setOpaque(false);
 
-        // Left Panel: Queue (FR16, FR17)
+        // Left Panel: Scheduled Queue
         JPanel leftQueueCard = UIStyle.createCard();
         leftQueueCard.setLayout(new BorderLayout(0, 10));
 
@@ -162,11 +170,11 @@ public class DoctorConsultationPanel extends JPanel {
 
         splitPane.setLeftComponent(leftQueueCard);
 
-        // Right Panel: Clinical Record & Prescription Editor (FR17 - FR23)
+        // Right Panel: Medical Record & Prescription Editor
         JPanel rightWorkstation = new JPanel(new BorderLayout(0, 12));
         rightWorkstation.setOpaque(false);
 
-        // Patient Banner
+        // Patient Summary Banner
         JPanel patientCard = UIStyle.createCard();
         patientCard.setLayout(new BorderLayout(12, 0));
 
@@ -194,7 +202,7 @@ public class DoctorConsultationPanel extends JPanel {
         patientCard.add(bannerActions, BorderLayout.EAST);
         rightWorkstation.add(patientCard, BorderLayout.NORTH);
 
-        // Consultation Forms (Symptoms, Diagnosis, Notes, Rx)
+        // Clinical Forms (Symptoms, Diagnosis, Notes, Prescriptions)
         JPanel formCard = UIStyle.createCard();
         formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
 
@@ -214,7 +222,7 @@ public class DoctorConsultationPanel extends JPanel {
         symptomsArea.setLineWrap(true);
         JPanel sympPanel = new JPanel(new BorderLayout());
         sympPanel.setOpaque(false);
-        sympPanel.add(new JLabel("Symptoms:"), BorderLayout.NORTH);
+        sympPanel.add(new JLabel("Patient Symptoms:"), BorderLayout.NORTH);
         sympPanel.add(new JScrollPane(symptomsArea), BorderLayout.CENTER);
 
         diagnosisField = UIStyle.createStyledTextField(24);
@@ -238,7 +246,7 @@ public class DoctorConsultationPanel extends JPanel {
         formCard.add(findingsGrid);
         formCard.add(Box.createVerticalStrut(14));
 
-        // Electronic Prescription Section (FR19, FR20, FR21)
+        // Electronic Prescription Section (FR19 - FR21)
         JPanel rxHeaderPanel = new JPanel(new BorderLayout());
         rxHeaderPanel.setOpaque(false);
         JLabel rxHeader = new JLabel("Electronic Prescription (FR19 - FR21):");
@@ -257,6 +265,7 @@ public class DoctorConsultationPanel extends JPanel {
             if (item != null) {
                 prescriptionItems.add(item);
                 updateRxTable();
+                ToastNotification.showInfo(this, "Medicine Added", item.getMedicineName() + " added to prescription.");
             }
         });
 
@@ -311,22 +320,47 @@ public class DoctorConsultationPanel extends JPanel {
         add(splitPane, BorderLayout.CENTER);
     }
 
+    /**
+     * Resolves authenticated clinician context and locks dropdown for logged-in doctors.
+     */
+    public void resolveActiveDoctorContext() {
+        User user = authService.getCurrentUser().orElse(null);
+        if (user instanceof DoctorUser docUser) {
+            // Lock session to this doctor profile
+            currentDoctor = doctorService.getDoctorById(docUser.getDoctorProfileId()).orElse(null);
+            doctorSelector.setVisible(false);
+            doctorSessionBadge.setText("👨‍⚕️ Clinician: " + (currentDoctor != null ? currentDoctor.getName() + " (" + currentDoctor.getSpecialization() + ")" : user.getFullName()));
+            doctorSessionBadge.setVisible(true);
+        } else {
+            // Administrative preview mode
+            doctorSelector.setVisible(true);
+            doctorSessionBadge.setText("Clinician Session:");
+            doctorSessionBadge.setVisible(true);
+            currentDoctor = (Doctor) doctorSelector.getSelectedItem();
+        }
+    }
+
     public void loadDoctorQueue() {
+        resolveActiveDoctorContext();
         queueListModel.clear();
-        Doctor selectedDoctor = (Doctor) doctorSelector.getSelectedItem();
-        if (selectedDoctor == null) return;
+        if (currentDoctor == null) return;
 
         LocalDate today = LocalDate.now();
-        List<Appointment> list = appointmentService.getDoctorAppointmentsForDate(selectedDoctor.getDoctorId(), today);
+        List<Appointment> list = appointmentService.getDoctorAppointmentsForDate(currentDoctor.getDoctorId(), today);
         for (Appointment a : list) {
             queueListModel.addElement(a);
         }
 
-        // Reset editor
         resetConsultationEditor();
     }
 
     private void loadAppointmentForConsultation(Appointment app) {
+        // Strict Privacy Guard: Doctor cannot examine patients scheduled with another doctor
+        if (currentDoctor != null && !app.getDoctorId().equals(currentDoctor.getDoctorId())) {
+            ToastNotification.showError(this, "Access Denied", "Privacy Violation: You are not authorized to access another clinician's patient.");
+            return;
+        }
+
         this.activeAppointment = app;
         this.activePatient = patientService.getPatientById(app.getPatientId()).orElse(null);
 
@@ -336,7 +370,6 @@ public class DoctorConsultationPanel extends JPanel {
             viewHistoryBtn.setEnabled(true);
         }
 
-        // Start or retrieve consultation
         this.activeConsultation = consultationService.startConsultation(app.getAppointmentId());
 
         symptomsArea.setText(activeConsultation.getSymptoms());
@@ -404,7 +437,8 @@ public class DoctorConsultationPanel extends JPanel {
 
         String diagnosis = diagnosisField.getText().trim();
         if (diagnosis.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Clinical Diagnosis is mandatory to finalize consultation.", "Input Required", JOptionPane.WARNING_MESSAGE);
+            ToastNotification.showWarning(this, "Diagnosis Mandatory", "Please enter a clinical diagnosis to finalize.");
+            diagnosisField.requestFocus();
             return;
         }
 
@@ -417,31 +451,23 @@ public class DoctorConsultationPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         try {
-            // 1. Record findings (FR18)
             consultationService.recordClinicalFindings(activeConsultation.getConsultationId(),
                     symptomsArea.getText().trim(), diagnosis, notesArea.getText().trim());
 
-            // 2. Attach prescription (FR19)
             Prescription rx = new Prescription("RX-" + activeConsultation.getConsultationId(), activeConsultation.getConsultationId());
             for (PrescriptionItem it : prescriptionItems) {
                 rx.addItem(it);
             }
             consultationService.attachPrescription(activeConsultation.getConsultationId(), rx);
 
-            // 3. Finalize & Lock Consultation (FR22, FR23, FR24)
             Consultation completedConsult = consultationService.finalizeAndCompleteConsultation(activeConsultation.getConsultationId());
 
-            JOptionPane.showMessageDialog(this,
-                    "Consultation #" + completedConsult.getConsultationId() + " successfully completed!\n"
-                            + "- Medical record locked (FR23)\n"
-                            + "- Added to patient permanent history (FR22)\n"
-                            + "- Invoice generated for front desk billing (FR24)",
-                    "Consultation Finalized", JOptionPane.INFORMATION_MESSAGE);
+            ToastNotification.showSuccess(this, "Consultation Finalized",
+                    "Record #" + completedConsult.getConsultationId() + " locked & bill generated.");
 
             loadDoctorQueue();
         } catch (ValidationException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ToastNotification.showError(this, "Validation Error", ex.getMessage());
         }
     }
 }
-
