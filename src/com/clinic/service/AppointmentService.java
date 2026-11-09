@@ -157,5 +157,3 @@ public class AppointmentService implements IAppointmentService {
         return appointmentRepository.findById(appointmentId);
     }
 }
-
-// FR13: Prevents overlapping appointments for same doctor at same date and time

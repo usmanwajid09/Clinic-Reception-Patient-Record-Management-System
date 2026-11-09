@@ -88,5 +88,3 @@ public class BillingService implements IBillingService {
         return billRepository.findByDateRange(startDate, endDate);
     }
 }
-
-// FR24: Automatically calculates fee = docFee + fixedServiceCharge

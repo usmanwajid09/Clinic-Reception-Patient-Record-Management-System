@@ -203,4 +203,3 @@ public class BookAppointmentDialog extends JDialog {
         return booked;
     }
 }
-

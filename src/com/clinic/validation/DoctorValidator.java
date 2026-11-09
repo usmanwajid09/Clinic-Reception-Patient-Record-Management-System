@@ -31,5 +31,3 @@ public class DoctorValidator implements IValidator<Doctor> {
         }
     }
 }
-
-// FR6: Validates doctor credentials and fees

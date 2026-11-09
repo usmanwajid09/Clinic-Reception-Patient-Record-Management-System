@@ -21,4 +21,3 @@ public final class AppConfig {
     public static final int APP_WIDTH = 1200;
     public static final int APP_HEIGHT = 800;
 }
-

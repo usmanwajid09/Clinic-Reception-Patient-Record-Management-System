@@ -89,4 +89,3 @@ public class PrintableReceiptDialog extends JDialog {
         setContentPane(root);
     }
 }
-

@@ -105,5 +105,3 @@ public class DoctorService implements IDoctorService {
         return doctorRepository.saveDepartment(dep);
     }
 }
-
-// DIP: Depends on IDoctorRepository abstraction

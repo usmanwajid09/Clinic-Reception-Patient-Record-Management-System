@@ -180,4 +180,3 @@ public class PatientDialog extends JDialog {
         return saved;
     }
 }
-

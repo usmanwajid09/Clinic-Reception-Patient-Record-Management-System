@@ -142,4 +142,3 @@ public class PatientHistoryDialog extends JDialog {
         panel.add(item);
     }
 }
-

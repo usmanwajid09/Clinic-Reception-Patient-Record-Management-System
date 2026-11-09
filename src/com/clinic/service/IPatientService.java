@@ -25,4 +25,3 @@ public interface IPatientService {
 
     List<Consultation> getPatientMedicalHistory(String patientId);
 }
-

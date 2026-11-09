@@ -149,4 +149,3 @@ public class PaymentDialog extends JDialog {
         return paid;
     }
 }
-

@@ -124,5 +124,3 @@ public class ReportService implements IReportService {
         );
     }
 }
-
-// FR27-FR30: Multi-dimensional clinical report aggregation

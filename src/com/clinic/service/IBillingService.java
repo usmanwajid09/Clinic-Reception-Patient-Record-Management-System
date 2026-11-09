@@ -27,4 +27,3 @@ public interface IBillingService {
 
     List<Bill> getBillsByDateRange(LocalDate startDate, LocalDate endDate);
 }
-

@@ -162,4 +162,3 @@ public class DoctorDialog extends JDialog {
         return saved;
     }
 }
-

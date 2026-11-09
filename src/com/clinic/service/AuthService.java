@@ -71,5 +71,3 @@ public class AuthService implements IAuthService {
         this.currentUser = null;
     }
 }
-
-// Mock session store for rapid desktop role switching
