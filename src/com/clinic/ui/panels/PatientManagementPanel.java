@@ -1,15 +1,17 @@
 package com.clinic.ui.panels;
 
 import com.clinic.model.Patient;
+import com.clinic.model.Role;
+import com.clinic.model.User;
+import com.clinic.service.IAuthService;
 import com.clinic.service.IDoctorService;
 import com.clinic.service.IPatientService;
+import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
-import com.clinic.ui.components.StatCard;
 import com.clinic.ui.dialogs.PatientDialog;
 import com.clinic.ui.dialogs.PatientHistoryDialog;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
-import com.clinic.util.DateTimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -20,20 +22,24 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Presentation panel for Patient Registration and Directory Management (FR1, FR2, FR3, FR4, FR5).
+ * Presentation panel for Patient Intake, Directory Search, and History (FR1 - FR5).
+ * Enforces role boundaries: Receptionists register and update demographics; Administrators audit records.
  */
 public class PatientManagementPanel extends JPanel {
     private final IPatientService patientService;
     private final IDoctorService doctorService;
+    private final IAuthService authService;
 
     private JTable patientTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
-    private StatCard totalPatientsCard;
+    private ModernButton registerBtn;
+    private ModernButton updateBtn;
 
-    public PatientManagementPanel(IPatientService patientService, IDoctorService doctorService) {
+    public PatientManagementPanel(IPatientService patientService, IDoctorService doctorService, IAuthService authService) {
         this.patientService = patientService;
         this.doctorService = doctorService;
+        this.authService = authService;
 
         setLayout(new BorderLayout(0, 16));
         setBackground(ThemeColors.BG_LIGHT);
@@ -41,10 +47,14 @@ public class PatientManagementPanel extends JPanel {
 
         initComponents();
         loadPatients();
+        applyRolePermissions();
+    }
+
+    public PatientManagementPanel(IPatientService patientService, IDoctorService doctorService) {
+        this(patientService, doctorService, null);
     }
 
     private void initComponents() {
-        // Top Toolbar & Stats
         JPanel topPanel = new JPanel(new BorderLayout(0, 12));
         topPanel.setOpaque(false);
 
@@ -85,23 +95,24 @@ public class PatientManagementPanel extends JPanel {
         JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnBox.setOpaque(false);
 
-        ModernButton registerBtn = new ModernButton("+ Register New Patient (FR1)");
+        registerBtn = new ModernButton("+ Register New Patient (FR1)");
         registerBtn.addActionListener(e -> {
             PatientDialog dialog = new PatientDialog(SwingUtilities.getWindowAncestor(this), patientService, null);
             dialog.setVisible(true);
             if (dialog.isSaved()) {
                 loadPatients();
+                ToastNotification.showSuccess(this, "Patient Registered", "Patient record saved successfully.");
             }
         });
 
-        ModernButton editBtn = ModernButton.secondary("Edit Details (FR3)");
-        editBtn.addActionListener(e -> handleEditPatient());
+        updateBtn = ModernButton.secondary("Update Demographics (FR3)");
+        updateBtn.addActionListener(e -> handleUpdatePatient());
 
-        ModernButton historyBtn = ModernButton.secondary("View History (FR4)");
+        ModernButton historyBtn = ModernButton.secondary("View Visit History (FR4)");
         historyBtn.addActionListener(e -> handleViewHistory());
 
         btnBox.add(historyBtn);
-        btnBox.add(editBtn);
+        btnBox.add(updateBtn);
         btnBox.add(registerBtn);
 
         actionsBar.add(searchBox, BorderLayout.WEST);
@@ -112,7 +123,7 @@ public class PatientManagementPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // Table
-        String[] columns = {"Patient ID", "Name", "Age / Gender", "Date of Birth", "Contact Number", "Emergency Contact", "Address"};
+        String[] columns = {"Patient ID", "Full Name", "Date of Birth", "Gender", "Contact Number", "Address", "Emergency Contact"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -126,70 +137,92 @@ public class PatientManagementPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(patientTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER));
         scrollPane.getViewport().setBackground(Color.WHITE);
-
         add(scrollPane, BorderLayout.CENTER);
     }
 
+    public void applyRolePermissions() {
+        if (authService == null) return;
+        User user = authService.getCurrentUser().orElse(null);
+        if (user != null && user.getRole() == Role.ADMINISTRATOR) {
+            // Admin is audit-only; Front desk registers patients
+            registerBtn.setVisible(false);
+            updateBtn.setVisible(false);
+        } else {
+            registerBtn.setVisible(true);
+            updateBtn.setVisible(true);
+        }
+    }
+
     public void loadPatients() {
+        applyRolePermissions();
         tableModel.setRowCount(0);
         List<Patient> patients = patientService.getAllPatients();
         for (Patient p : patients) {
             tableModel.addRow(new Object[]{
                     p.getPatientId(),
                     p.getName(),
-                    p.getAge() + " yrs / " + p.getGender(),
-                    DateTimeUtil.formatDate(p.getDateOfBirth()),
+                    p.getDateOfBirth().toString(),
+                    p.getGender(),
                     p.getContactNumber(),
-                    p.getEmergencyContact(),
-                    p.getAddress()
+                    p.getAddress(),
+                    p.getEmergencyContact()
             });
         }
     }
 
     private void filterPatients() {
         String query = searchField.getText().trim();
+        List<Patient> results;
+        if (query.isEmpty()) {
+            results = patientService.getAllPatients();
+        } else {
+            results = patientService.searchPatients(query);
+        }
+
         tableModel.setRowCount(0);
-        List<Patient> filtered = patientService.searchPatients(query);
-        for (Patient p : filtered) {
+        for (Patient p : results) {
             tableModel.addRow(new Object[]{
                     p.getPatientId(),
                     p.getName(),
-                    p.getAge() + " yrs / " + p.getGender(),
-                    DateTimeUtil.formatDate(p.getDateOfBirth()),
+                    p.getDateOfBirth().toString(),
+                    p.getGender(),
                     p.getContactNumber(),
-                    p.getEmergencyContact(),
-                    p.getAddress()
+                    p.getAddress(),
+                    p.getEmergencyContact()
             });
         }
     }
 
-    private void handleEditPatient() {
-        int row = patientTable.getSelectedRow();
-        if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a patient from the table to edit.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+    private void handleUpdatePatient() {
+        int selectedRow = patientTable.getSelectedRow();
+        if (selectedRow < 0) {
+            ToastNotification.showWarning(this, "Selection Required", "Please select a patient from the table.");
             return;
         }
-        String patientId = (String) tableModel.getValueAt(row, 0);
+
+        String patientId = (String) tableModel.getValueAt(selectedRow, 0);
         patientService.getPatientById(patientId).ifPresent(patient -> {
             PatientDialog dialog = new PatientDialog(SwingUtilities.getWindowAncestor(this), patientService, patient);
             dialog.setVisible(true);
             if (dialog.isSaved()) {
                 loadPatients();
+                ToastNotification.showSuccess(this, "Demographics Updated", "Patient details updated for " + patient.getName());
             }
         });
     }
 
     private void handleViewHistory() {
-        int row = patientTable.getSelectedRow();
-        if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a patient from the table to view history.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+        int selectedRow = patientTable.getSelectedRow();
+        if (selectedRow < 0) {
+            ToastNotification.showWarning(this, "Selection Required", "Please select a patient from the table.");
             return;
         }
-        String patientId = (String) tableModel.getValueAt(row, 0);
+
+        String patientId = (String) tableModel.getValueAt(selectedRow, 0);
         patientService.getPatientById(patientId).ifPresent(patient -> {
-            PatientHistoryDialog dialog = new PatientHistoryDialog(SwingUtilities.getWindowAncestor(this), patient, patientService, doctorService);
+            PatientHistoryDialog dialog = new PatientHistoryDialog(SwingUtilities.getWindowAncestor(this),
+                    patient, patientService, doctorService);
             dialog.setVisible(true);
         });
     }
 }
-

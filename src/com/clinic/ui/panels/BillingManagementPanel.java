@@ -4,17 +4,16 @@ import com.clinic.config.AppConfig;
 import com.clinic.model.Bill;
 import com.clinic.model.Doctor;
 import com.clinic.model.Patient;
-import com.clinic.model.PaymentStatus;
 import com.clinic.service.IBillingService;
 import com.clinic.service.IDoctorService;
 import com.clinic.service.IPatientService;
+import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.components.StatCard;
 import com.clinic.ui.dialogs.PaymentDialog;
 import com.clinic.ui.dialogs.PrintableReceiptDialog;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
-import com.clinic.util.DateTimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,7 +22,8 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Presentation panel for Clinic Invoicing, Payment Collection, and Receipts (FR24, FR25, FR26).
+ * Presentation panel for Consultation Invoicing, Fee Collection, and Receipts (FR24 - FR26).
+ * Front desk cashier terminal for patient payments and thermal receipt generation.
  */
 public class BillingManagementPanel extends JPanel {
     private final IBillingService billingService;
@@ -38,9 +38,7 @@ public class BillingManagementPanel extends JPanel {
     private StatCard totalPaidCard;
     private StatCard totalOutstandingCard;
 
-    public BillingManagementPanel(IBillingService billingService,
-                                  IPatientService patientService,
-                                  IDoctorService doctorService) {
+    public BillingManagementPanel(IBillingService billingService, IPatientService patientService, IDoctorService doctorService) {
         this.billingService = billingService;
         this.patientService = patientService;
         this.doctorService = doctorService;
@@ -75,9 +73,9 @@ public class BillingManagementPanel extends JPanel {
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 14, 0));
         statsPanel.setOpaque(false);
 
-        totalInvoicedCard = new StatCard("Total Invoiced", "$0.00", "Consultation fees + charges", ThemeColors.INFO);
-        totalPaidCard = new StatCard("Collected Revenue", "$0.00", "Settled payments (FR25)", ThemeColors.SUCCESS);
-        totalOutstandingCard = new StatCard("Pending Balance", "$0.00", "Awaiting collection", ThemeColors.WARNING);
+        totalInvoicedCard = new StatCard("Total Invoiced", "Rs. 0.00", "Consultation fees + clinic charges", ThemeColors.INFO);
+        totalPaidCard = new StatCard("Collected Revenue", "Rs. 0.00", "Settled payments (FR25)", ThemeColors.SUCCESS);
+        totalOutstandingCard = new StatCard("Pending Balance", "Rs. 0.00", "Awaiting collection", ThemeColors.WARNING);
 
         statsPanel.add(totalInvoicedCard);
         statsPanel.add(totalPaidCard);
@@ -89,23 +87,24 @@ public class BillingManagementPanel extends JPanel {
 
         JPanel filterBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         filterBox.setOpaque(false);
-        JLabel statusLbl = new JLabel("Payment Status Filter (FR25):");
-        statusLbl.setFont(UIStyle.FONT_BOLD);
-        statusFilter = new JComboBox<>(new String[]{"All Bills", "Unpaid", "Paid"});
+
+        JLabel filterLabel = new JLabel("Status Filter:");
+        filterLabel.setFont(UIStyle.FONT_BOLD);
+        statusFilter = new JComboBox<>(new String[]{"All Bills", "Unpaid Only", "Paid Only"});
         statusFilter.setFont(UIStyle.FONT_REGULAR);
         statusFilter.setBackground(Color.WHITE);
         statusFilter.addActionListener(e -> filterBills());
 
-        filterBox.add(statusLbl);
+        filterBox.add(filterLabel);
         filterBox.add(statusFilter);
 
         JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnBox.setOpaque(false);
 
-        ModernButton payBtn = ModernButton.success("Record Payment (FR25)");
+        ModernButton payBtn = new ModernButton("💳 Record Payment (FR25)");
         payBtn.addActionListener(e -> handleRecordPayment());
 
-        ModernButton receiptBtn = ModernButton.secondary("Print Receipt (FR26)");
+        ModernButton receiptBtn = ModernButton.secondary("🖨️ View / Print Receipt (FR26)");
         receiptBtn.addActionListener(e -> handlePrintReceipt());
 
         btnBox.add(receiptBtn);
@@ -120,7 +119,7 @@ public class BillingManagementPanel extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // Table
-        String[] columns = {"Invoice ID", "Consultation", "Patient", "Doctor", "Doctor Fee (FR24)", "Clinic Charge (FR24)", "Total Amount", "Status (FR25)", "Receipt Ref (FR26)"};
+        String[] columns = {"Bill ID", "Date", "Patient Name", "Clinician", "Total Amount (FR24)", "Payment Status (FR25)", "Paid Amount", "Method"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -130,19 +129,20 @@ public class BillingManagementPanel extends JPanel {
 
         billTable = new JTable(tableModel);
         UIStyle.styleTable(billTable);
-        billTable.getColumnModel().getColumn(0).setPreferredWidth(90);
+        UIStyle.applyStatusBadge(billTable, 5);
+
+        billTable.getColumnModel().getColumn(0).setPreferredWidth(80);
         billTable.getColumnModel().getColumn(1).setPreferredWidth(95);
-        billTable.getColumnModel().getColumn(2).setPreferredWidth(130);
+        billTable.getColumnModel().getColumn(2).setPreferredWidth(140);
         billTable.getColumnModel().getColumn(3).setPreferredWidth(140);
         billTable.getColumnModel().getColumn(4).setPreferredWidth(110);
-        billTable.getColumnModel().getColumn(5).setPreferredWidth(120);
+        billTable.getColumnModel().getColumn(5).setPreferredWidth(105);
         billTable.getColumnModel().getColumn(6).setPreferredWidth(100);
         billTable.getColumnModel().getColumn(7).setPreferredWidth(90);
 
         JScrollPane scrollPane = new JScrollPane(billTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER));
         scrollPane.getViewport().setBackground(Color.WHITE);
-
         add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -151,38 +151,47 @@ public class BillingManagementPanel extends JPanel {
     }
 
     private void filterBills() {
-        tableModel.setRowCount(0);
-        String selected = (String) statusFilter.getSelectedItem();
+        String filter = (String) statusFilter.getSelectedItem();
+        List<Bill> list;
 
-        List<Bill> list = billingService.getAllBills();
+        if ("Unpaid Only".equals(filter)) {
+            list = billingService.getBillsByStatus(com.clinic.model.PaymentStatus.UNPAID);
+        } else if ("Paid Only".equals(filter)) {
+            list = billingService.getAllBills().stream().filter(Bill::isPaid).toList();
+        } else {
+            list = billingService.getAllBills();
+        }
+
+        renderBills(list);
+    }
+
+    private void renderBills(List<Bill> list) {
+        tableModel.setRowCount(0);
+
         double totalInvoiced = 0.0;
         double totalPaid = 0.0;
         double totalOutstanding = 0.0;
 
         for (Bill b : list) {
-            totalInvoiced += b.getTotalAmount();
-            if (b.isPaid()) {
-                totalPaid += b.getTotalAmount();
-            } else {
-                totalOutstanding += b.getTotalAmount();
-            }
-
-            if ("Unpaid".equalsIgnoreCase(selected) && b.isPaid()) continue;
-            if ("Paid".equalsIgnoreCase(selected) && !b.isPaid()) continue;
-
             Patient p = patientService.getPatientById(b.getPatientId()).orElse(null);
             Doctor d = doctorService.getDoctorById(b.getDoctorId()).orElse(null);
 
+            double paid = b.isPaid() ? b.getTotalAmount() : 0.0;
+            double balance = b.isPaid() ? 0.0 : b.getTotalAmount();
+
+            totalInvoiced += b.getTotalAmount();
+            totalPaid += paid;
+            totalOutstanding += balance;
+
             tableModel.addRow(new Object[]{
                     b.getBillId(),
-                    b.getConsultationId(),
+                    b.getBilledAt().toLocalDate().toString(),
                     p != null ? p.getName() : b.getPatientId(),
                     d != null ? d.getName() : b.getDoctorId(),
-                    AppConfig.CURRENCY_SYMBOL + String.format("%.2f", b.getDoctorConsultationFee()),
-                    AppConfig.CURRENCY_SYMBOL + String.format("%.2f", b.getClinicServiceCharge()),
                     AppConfig.CURRENCY_SYMBOL + String.format("%.2f", b.getTotalAmount()),
-                    b.getPaymentStatus().getDisplayName(),
-                    b.getReceiptNumber() != null ? b.getReceiptNumber() : "-"
+                    b.getPaymentStatus().name(),
+                    AppConfig.CURRENCY_SYMBOL + String.format("%.2f", paid),
+                    b.getPaymentMethod() != null ? b.getPaymentMethod().name() : "N/A"
             });
         }
 
@@ -194,14 +203,14 @@ public class BillingManagementPanel extends JPanel {
     private void handleRecordPayment() {
         int row = billTable.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select an unpaid bill from the table.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+            ToastNotification.showWarning(this, "Selection Required", "Please select an unpaid bill from the table.");
             return;
         }
 
         String billId = (String) tableModel.getValueAt(row, 0);
         billingService.getBillById(billId).ifPresent(bill -> {
             if (bill.isPaid()) {
-                JOptionPane.showMessageDialog(this, "This bill is already settled (Status: PAID).", "Information", JOptionPane.INFORMATION_MESSAGE);
+                ToastNotification.showInfo(this, "Already Settled", "This bill has already been marked as PAID.");
                 return;
             }
 
@@ -210,6 +219,7 @@ public class BillingManagementPanel extends JPanel {
             dialog.setVisible(true);
             if (dialog.isPaid()) {
                 loadBills();
+                ToastNotification.showSuccess(this, "Payment Recorded", "Bill #" + billId + " successfully marked as PAID.");
             }
         });
     }
@@ -217,7 +227,7 @@ public class BillingManagementPanel extends JPanel {
     private void handlePrintReceipt() {
         int row = billTable.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Please select a bill from the table to print receipt.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
+            ToastNotification.showWarning(this, "Selection Required", "Please select a bill from the table to print receipt.");
             return;
         }
 
@@ -231,4 +241,3 @@ public class BillingManagementPanel extends JPanel {
         });
     }
 }
-
