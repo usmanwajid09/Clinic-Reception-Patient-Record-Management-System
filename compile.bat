@@ -1,18 +1,25 @@
 @echo off
+setlocal
 echo ========================================================
 echo Compiling Clinic Reception Management Desktop Application
 echo ========================================================
 
 if not exist bin mkdir bin
 
-dir /s /B src\*.java > sources.txt
-javac -d bin @sources.txt
-del sources.txt
+set JAVAC_BIN=javac
+if exist "C:\Program Files\Microsoft\jdk-21.0.13.21-hotspot\bin\javac.exe" (
+    set "JAVAC_BIN=C:\Program Files\Microsoft\jdk-21.0.13.21-hotspot\bin\javac.exe"
+)
 
-if %ERRORLEVEL% EQU 0 (
+powershell -NoProfile -Command "(Get-ChildItem -Path src -Recurse -Filter *.java).FullName.Replace('\', '/') | ForEach-Object { '\"' + $_ + '\"' } | Set-Content sources.txt -Encoding ascii"
+
+"%JAVAC_BIN%" -cp "lib/*;bin" -d bin @sources.txt
+set COMPILE_ERR=%ERRORLEVEL%
+if exist sources.txt del sources.txt
+
+if %COMPILE_ERR% EQU 0 (
     echo [SUCCESS] Compilation finished successfully. Classes output to 'bin/'.
 ) else (
-    echo [ERROR] Compilation failed.
+    echo [ERROR] Compilation failed with error code %COMPILE_ERR%.
 )
-pause
-
+endlocal
