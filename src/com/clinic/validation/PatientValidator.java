@@ -39,3 +39,5 @@ public class PatientValidator implements IValidator<Patient> {
         }
     }
 }
+
+// FR5: Validates mandatory patient fields
