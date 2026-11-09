@@ -114,3 +114,5 @@ public class InMemoryAppointmentRepository implements IAppointmentRepository {
         return "APT-" + sequence.incrementAndGet();
     }
 }
+
+// Strict stream filtering for doctor schedule collision detection
