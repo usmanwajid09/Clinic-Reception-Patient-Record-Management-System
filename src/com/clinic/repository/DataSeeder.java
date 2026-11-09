@@ -10,6 +10,7 @@ import java.util.*;
 /**
  * Pre-populates realistic clinical data into repositories so the desktop application
  * is immediately functional, interactive, and demonstrable upon launch.
+ * Uses realistic Pakistani names, local clinics, addresses, and phone numbers.
  */
 public class DataSeeder {
     private final IPatientRepository patientRepo;
@@ -68,28 +69,28 @@ public class DataSeeder {
         Set<DayOfWeek> weekDays = EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
         Set<DayOfWeek> altDays = EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY);
 
-        // 2. Seed Doctors (FR6, FR7, FR8)
-        Doctor doc1 = new Doctor("DOC-101", "Dr. Sarah Jenkins", "Cardiology", "MBBS, MD (Cardiology), FACC", 85.0, cardiology);
+        // 2. Seed Doctors with Pakistani Names and Credentials (FR6, FR7, FR8)
+        Doctor doc1 = new Doctor("DOC-101", "Dr. Muhammad Bilal", "Cardiology", "MBBS, FCPS (Cardiology), MRCP (UK)", 2500.0, cardiology);
         doc1.setWorkingDays(weekDays);
         doc1.setConsultationSlots(allDaySlots);
 
-        Doctor doc2 = new Doctor("DOC-102", "Dr. Michael Chen", "Pediatrics", "MBBS, DCH, FAAP", 60.0, pediatrics);
+        Doctor doc2 = new Doctor("DOC-102", "Dr. Ayesha Tariq", "Pediatrics", "MBBS, FCPS (Pediatrics), DCH (Glasgow)", 2000.0, pediatrics);
         doc2.setWorkingDays(weekDays);
         doc2.setConsultationSlots(morningSlots);
 
-        Doctor doc3 = new Doctor("DOC-103", "Dr. Robert Sterling", "General Medicine", "MBBS, MRCGP, MD", 50.0, genMed);
+        Doctor doc3 = new Doctor("DOC-103", "Dr. Usman Farooq", "General Medicine", "MBBS, MCPS (Family Medicine)", 1500.0, genMed);
         doc3.setWorkingDays(weekDays);
         doc3.setConsultationSlots(allDaySlots);
 
-        Doctor doc4 = new Doctor("DOC-104", "Dr. Emily Hayes", "Orthopedics", "MBBS, MS (Ortho), FRCS", 90.0, orthopedics);
+        Doctor doc4 = new Doctor("DOC-104", "Dr. Hamza Siddiqui", "Orthopedics", "MBBS, MS (Orthopedic Surgery), FRCS", 3000.0, orthopedics);
         doc4.setWorkingDays(altDays);
         doc4.setConsultationSlots(afternoonSlots);
 
-        Doctor doc5 = new Doctor("DOC-105", "Dr. Zainab Al-Mansoor", "Dermatology", "MBBS, DDV, American Board Cert.", 75.0, dermatology);
+        Doctor doc5 = new Doctor("DOC-105", "Dr. Zainab Bukhari", "Dermatology", "MBBS, FCPS (Dermatology)", 2200.0, dermatology);
         doc5.setWorkingDays(altDays);
         doc5.setConsultationSlots(morningSlots);
 
-        Doctor doc6 = new Doctor("DOC-106", "Dr. James Wilson", "Cardiology", "MBBS, FESC", 80.0, cardiology);
+        Doctor doc6 = new Doctor("DOC-106", "Dr. Tariq Mehmood", "Cardiology", "MBBS, MD, Dipl. Cardiology", 2500.0, cardiology);
         doc6.setWorkingDays(weekDays);
         doc6.setConsultationSlots(afternoonSlots);
 
@@ -100,19 +101,23 @@ public class DataSeeder {
         doctorRepo.save(doc5);
         doctorRepo.save(doc6);
 
-        // 3. Seed Patients (FR1)
-        Patient pat1 = new Patient("PAT-1001", "Alice Harrison", LocalDate.of(1989, 4, 15), "Female",
-                "742 Evergreen Terrace, Springfield", "555-0101", "Bob Harrison (555-0102)");
-        Patient pat2 = new Patient("PAT-1002", "David Miller", LocalDate.of(1975, 11, 23), "Male",
-                "124 Conch Street, Riverdale", "555-0201", "Sarah Miller (555-0202)");
-        Patient pat3 = new Patient("PAT-1003", "Sophia Rodriguez", LocalDate.of(2001, 8, 9), "Female",
-                "456 Elm Street, Metropol", "555-0301", "Elena Rodriguez (555-0302)");
-        Patient pat4 = new Patient("PAT-1004", "William Parker", LocalDate.of(1963, 2, 17), "Male",
-                "89 Ocean Drive, Bay City", "555-0401", "Grace Parker (555-0402)");
-        Patient pat5 = new Patient("PAT-1005", "Chloe Kim", LocalDate.of(2018, 6, 30), "Female",
-                "32 Pine Crest Lane, Greenfield", "555-0501", "Hannah Kim (555-0502)");
-        Patient pat6 = new Patient("PAT-1006", "Marcus Vance", LocalDate.of(1995, 12, 5), "Male",
-                "501 Beacon Hill, Grandview", "555-0601", "Tyler Vance (555-0602)");
+        // 3. Seed Patients with Pakistani Names, Addresses & Contact Numbers (FR1)
+        Patient pat1 = new Patient("PAT-1001", "Ali Raza Khan", LocalDate.of(1988, 4, 15), "Male",
+                "House 12-A, Street 4, Gulberg III, Lahore", "0300-1234567", "Tariq Khan (Father - 0300-7654321)");
+        Patient pat2 = new Patient("PAT-1002", "Fatima Zahra", LocalDate.of(1995, 11, 23), "Female",
+                "Flat 302, Al-Rehman Heights, F-10/2, Islamabad", "0321-4567890", "Ahmed Raza (Husband - 0321-0987654)");
+        Patient pat3 = new Patient("PAT-1003", "Muhammad Zayan", LocalDate.of(2018, 8, 9), "Male",
+                "House 88, Sector C, Bahria Town, Rawalpindi", "0333-5678901", "Maryam Zayan (Mother - 0333-1098765)");
+        Patient pat4 = new Patient("PAT-1004", "Chaudhry Bashir Ahmed", LocalDate.of(1960, 2, 17), "Male",
+                "Kothi 45, Model Town, Block C, Lahore", "0345-6789012", "Hamza Bashir (Son - 0345-2109876)");
+        Patient pat5 = new Patient("PAT-1005", "Amina Bibi", LocalDate.of(1974, 6, 30), "Female",
+                "House 19, Street 8, PECHS Block 2, Karachi", "0312-3456789", "Rashid Minhas (Brother - 0312-9876543)");
+        Patient pat6 = new Patient("PAT-1006", "Bilal Hassan", LocalDate.of(1995, 12, 5), "Male",
+                "House 204, Sector G-11/3, Islamabad", "0301-8765432", "Hassan Mahmood (Father - 0301-2345678)");
+        Patient pat7 = new Patient("PAT-1007", "Sana Mir", LocalDate.of(1997, 10, 14), "Female",
+                "House 14, Cavalry Ground, Lahore Cantt", "0322-9988776", "Asim Mir (Husband - 0322-1122334)");
+        Patient pat8 = new Patient("PAT-1008", "Kamran Akmal", LocalDate.of(1985, 3, 25), "Male",
+                "Street 10, Wapda Town, Gujranwala", "0334-4455667", "Naveed Akmal (Brother - 0334-7788990)");
 
         patientRepo.save(pat1);
         patientRepo.save(pat2);
@@ -120,51 +125,52 @@ public class DataSeeder {
         patientRepo.save(pat4);
         patientRepo.save(pat5);
         patientRepo.save(pat6);
+        patientRepo.save(pat7);
+        patientRepo.save(pat8);
 
         // 4. Seed Historical Appointments, Consultations & Bills (FR4, FR11, FR12, FR18, FR21, FR24, FR26)
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
-        // Historical Consultation for pat1 with doc1
+        // Historical Consultation for Ali Raza Khan with Dr. Muhammad Bilal
         Appointment pastAppt1 = new Appointment("APT-5001", pat1.getPatientId(), doc1.getDoctorId(), yesterday, morningSlots.get(0), 1);
         pastAppt1.setStatus(AppointmentStatus.COMPLETED);
         appointmentRepo.save(pastAppt1);
 
         Consultation consult1 = new Consultation("CON-7001", pastAppt1.getAppointmentId(), pat1.getPatientId(), doc1.getDoctorId());
-        consult1.setSymptoms("Shortness of breath on mild exertion, intermittent palpitations");
-        consult1.setDiagnosis("Stage 1 Essential Hypertension, mild sinus tachycardia");
-        consult1.setNotes("Advised low-sodium diet, regular aerobic exercise, and BP monitoring log.");
+        consult1.setSymptoms("Shortness of breath on mild exertion, intermittent chest heaviness, elevated BP (150/95)");
+        consult1.setDiagnosis("Stage 1 Essential Hypertension & Mild Angina Pectoris");
+        consult1.setNotes("Advised low-sodium diet, avoid oily and spicy food. Daily 30 mins brisk walking. Monitor BP log.");
 
         Prescription rx1 = new Prescription("RX-9001", consult1.getConsultationId());
-        rx1.addItem(new PrescriptionItem("Amlodipine 5mg", "1 tablet", "Once daily in morning", "30 days"));
-        rx1.addItem(new PrescriptionItem("Nebivolol 2.5mg", "1 tablet", "Once daily after breakfast", "30 days"));
-        rx1.setGeneralAdvice("Monitor blood pressure morning and night. Recheck in 4 weeks.");
+        rx1.addItem(new PrescriptionItem("Concor 5mg (Bisoprolol)", "1 tablet", "Once daily after breakfast", "30 days"));
+        rx1.addItem(new PrescriptionItem("Loprin 75mg (Aspirin)", "1 tablet", "Once daily after lunch", "30 days"));
+        rx1.addItem(new PrescriptionItem("Risek 20mg (Omeprazole)", "1 capsule", "Once daily before breakfast", "14 days"));
+        rx1.setGeneralAdvice("Avoid strenuous heavy lifting. Recheck BP in 3 weeks.");
         consult1.setPrescription(rx1);
         consult1.complete(); // Record locked (FR23)
         consultationRepo.save(consult1);
         pat1.addConsultationRecord(consult1.getConsultationId());
 
         Bill bill1 = new Bill("INV-3001", consult1.getConsultationId(), pat1.getPatientId(), doc1.getDoctorId(), doc1.getConsultationFee(), AppConfig.FIXED_CLINIC_SERVICE_CHARGE);
-        bill1.recordPayment(PaymentMethod.CREDIT_CARD, "REC-8001");
+        bill1.recordPayment(PaymentMethod.CASH, "REC-8001");
         billRepo.save(bill1);
 
         // Today's Scheduled Appointments (FR11, FR12, FR16)
         Appointment todayAppt1 = new Appointment("APT-5002", pat2.getPatientId(), doc1.getDoctorId(), today, morningSlots.get(0), 1);
-        todayAppt1.setNotes("Routine cardiology follow-up");
+        todayAppt1.setNotes("Cardiology follow-up & ECG review");
         appointmentRepo.save(todayAppt1);
 
-        Appointment todayAppt2 = new Appointment("APT-5003", pat3.getPatientId(), doc1.getDoctorId(), today, morningSlots.get(1), 2);
-        todayAppt2.setNotes("Chest discomfort after exercise");
+        Appointment todayAppt2 = new Appointment("APT-5003", pat3.getPatientId(), doc2.getDoctorId(), today, morningSlots.get(0), 1);
+        todayAppt2.setNotes("Seasonal dry cough and fever for 2 days");
         appointmentRepo.save(todayAppt2);
 
-        Appointment todayAppt3 = new Appointment("APT-5004", pat5.getPatientId(), doc2.getDoctorId(), today, morningSlots.get(0), 1);
-        todayAppt3.setNotes("Mild seasonal cough and low fever");
+        Appointment todayAppt3 = new Appointment("APT-5004", pat4.getPatientId(), doc3.getDoctorId(), today, morningSlots.get(0), 1);
+        todayAppt3.setNotes("Routine diabetic & hypertension checkup");
         appointmentRepo.save(todayAppt3);
 
-        Appointment todayAppt4 = new Appointment("APT-5005", pat4.getPatientId(), doc3.getDoctorId(), today, morningSlots.get(0), 1);
-        todayAppt4.setNotes("Routine health checkup");
+        Appointment todayAppt4 = new Appointment("APT-5005", pat5.getPatientId(), doc5.getDoctorId(), today, morningSlots.get(0), 1);
+        todayAppt4.setNotes("Skin allergy and itching on arms");
         appointmentRepo.save(todayAppt4);
     }
 }
-
-// Initial clinical seed dataset for live demonstration
