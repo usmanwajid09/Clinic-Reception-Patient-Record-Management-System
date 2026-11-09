@@ -157,5 +157,3 @@ public class Doctor {
         return name + " (" + specialization + " - " + department.getName() + ")";
     }
 }
-
-// OCP: Doctor availability checks allow extension without modifying consultation logic

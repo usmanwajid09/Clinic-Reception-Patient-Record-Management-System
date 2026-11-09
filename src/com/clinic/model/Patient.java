@@ -125,5 +125,3 @@ public class Patient {
         return name + " (" + patientId + ")";
     }
 }
-
-// SRP: Patient entity solely holds patient data and state

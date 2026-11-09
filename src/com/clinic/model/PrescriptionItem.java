@@ -50,4 +50,3 @@ public class PrescriptionItem {
         return medicineName + " | " + dosage + " | " + frequency + " | " + duration;
     }
 }
-

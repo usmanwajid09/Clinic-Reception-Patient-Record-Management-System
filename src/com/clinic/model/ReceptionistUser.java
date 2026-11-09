@@ -31,4 +31,3 @@ public class ReceptionistUser extends User {
         return true;
     }
 }
-

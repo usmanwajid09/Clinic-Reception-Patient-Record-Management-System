@@ -104,5 +104,3 @@ public class Appointment {
         return "Token #" + tokenNumber + " - " + appointmentDate + " (" + status + ")";
     }
 }
-
-// Immutable appointment token assigned sequentially

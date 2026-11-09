@@ -111,8 +111,6 @@ public class Bill {
 
     @Override
     public String toString() {
-        return "Bill #" + billId + " - Total: $" + String.format("%.2f", totalAmount) + " (" + paymentStatus + ")";
+        return "Bill #" + billId + " - Total: Rs. " + String.format("%.2f", totalAmount) + " (" + paymentStatus + ")";
     }
 }
-
-// FR24: Pure calculation decoupling doctor fee and clinic charge

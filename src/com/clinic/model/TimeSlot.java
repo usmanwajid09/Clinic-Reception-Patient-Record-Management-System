@@ -78,5 +78,3 @@ public class TimeSlot implements Comparable<TimeSlot> {
         return getFormatted();
     }
 }
-
-// Interval collision detection algorithm

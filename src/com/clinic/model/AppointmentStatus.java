@@ -24,4 +24,3 @@ public enum AppointmentStatus {
         return displayName;
     }
 }
-
