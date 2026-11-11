@@ -43,12 +43,12 @@ In **Phase 1**, the entire visual workspace and navigation architecture was buil
 | Workspace Module | Panel Class | Connected UI Form Dialogs | Role Visibility |
 | :--- | :--- | :--- | :--- |
 | **Role Overview Hub** | `DashboardHomePanel.java` | — | Receptionist, Doctor, Administrator |
-| **Patient Records** | `PatientManagementPanel.java` | `PatientDialog`, `PatientHistoryDialog` | Receptionist (Full UI), Administrator (Read-only UI) |
-| **Doctor Directory** | `DoctorManagementPanel.java` | `DoctorDialog`, `DoctorScheduleDialog`, `DoctorAvailabilityDialog` | Administrator (Full UI), Receptionist (Directory & Duty Status) |
-| **Appointment Desk** | `AppointmentManagementPanel.java` | `BookAppointmentDialog`, `RescheduleAppointmentDialog` | Receptionist (Full UI), Doctor (Own Queue), Administrator (Read-only UI) |
-| **Clinical Workstation** | `DoctorConsultationPanel.java` | `PrescriptionItemDialog`, `PatientHistoryDialog` | **Doctor Only** (Locked to clinician profile) |
+| **Patient Records** | `PatientManagementPanel.java` | `PatientDialog`, `PatientHistoryDialog` | **Receptionist** (Registration, Search, Update, History) |
+| **Doctor Directory** | `DoctorManagementPanel.java` | `DoctorDialog`, `DoctorScheduleDialog`, `DoctorAvailabilityDialog` | **Administrator** (Full Setup & Schedule), **Receptionist** (Directory & Availability) |
+| **Appointment Desk** | `AppointmentManagementPanel.java` | `BookAppointmentDialog`, `RescheduleAppointmentDialog` | **Receptionist** (Full Queue & Booking), **Doctor** (Own Queue) |
+| **Clinical Workstation** | `DoctorConsultationPanel.java` | `PrescriptionItemDialog`, `PatientHistoryDialog`, `DoctorAvailabilityDialog` | **Doctor Only** (Locked to clinician profile + Duty Availability) |
 | **Billing & Receipts** | `BillingManagementPanel.java` | `PaymentDialog`, `PrintableReceiptDialog` | **Receptionist Only** (Cashier terminal) |
-| **Analytics & Reports** | `ReportsPanel.java` | — | **Administrator Only** (4 report tabs) |
+| **Analytics & Reports** | `ReportsPanel.java` | — | **Administrator** (All 4 report tabs), **Receptionist** (Appointment, Visit History, Revenue tabs) |
 
 ### 3. Modern Styling, 60 FPS Motion Engine & Bespoke Icons
 - **FlatLaf 3.6 & High-DPI Theme ([`ThemeManager.java`](src/com/clinic/ui/theme/ThemeManager.java), [`ThemeColors.java`](src/com/clinic/ui/theme/ThemeColors.java), [`UIStyle.java`](src/com/clinic/ui/theme/UIStyle.java), [`UIBranding.java`](src/com/clinic/ui/theme/UIBranding.java))**:
@@ -177,3 +177,4 @@ java -cp "lib/*;bin" com.clinic.Main
   - `feature/auth-rbac-security`
   - `feature/medical-iconography`
   - `feature/gui-only-architecture`
+

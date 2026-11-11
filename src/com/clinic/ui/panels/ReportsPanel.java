@@ -16,8 +16,11 @@ import java.time.LocalDate;
 
 /**
  * Presentation panel for Clinical, Operational, and Revenue Analytics Tabbed Views.
+ * Filters report tabs per role (Administrator: all 4; Receptionist: Appointments, Visit History, Revenue).
  */
 public class ReportsPanel extends JPanel {
+    private final UiRole currentRole;
+
     private JTextField startDateField;
     private JTextField endDateField;
 
@@ -29,6 +32,12 @@ public class ReportsPanel extends JPanel {
     private JComboBox<PatientRow> patientSelector;
 
     public ReportsPanel() {
+        this(UiRole.ADMINISTRATOR);
+    }
+
+    public ReportsPanel(UiRole currentRole) {
+        this.currentRole = currentRole != null ? currentRole : UiRole.ADMINISTRATOR;
+
         setLayout(new BorderLayout(0, 16));
         setBackground(ThemeColors.BG_LIGHT);
         setBorder(new EmptyBorder(24, 24, 24, 24));
@@ -48,7 +57,10 @@ public class ReportsPanel extends JPanel {
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Inspect appointment statistics, doctor productivity, patient visits, and revenue tables");
+        String subtitle = currentRole == UiRole.RECEPTIONIST
+                ? "Inspect appointment summaries, patient visit-history logs, and billing revenue tables"
+                : "Inspect appointment statistics, doctor productivity, patient visits, and revenue tables";
+        JLabel subtitleLabel = new JLabel(subtitle);
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
@@ -101,7 +113,9 @@ public class ReportsPanel extends JPanel {
         tabbedPane.setFont(UIStyle.FONT_BOLD);
 
         tabbedPane.addTab("Appointment Reports", createAppointmentReportTab());
-        tabbedPane.addTab("Doctor Performance", createDoctorReportTab());
+        if (currentRole == UiRole.ADMINISTRATOR) {
+            tabbedPane.addTab("Doctor Performance", createDoctorReportTab());
+        }
         tabbedPane.addTab("Patient Visit History", createPatientHistoryTab());
         tabbedPane.addTab("Revenue & Billing", createRevenueReportTab());
 
@@ -198,18 +212,20 @@ public class ReportsPanel extends JPanel {
             appointmentModel.addRow(new Object[]{a.apptId, a.date, a.timeSlot, a.patientName, a.doctorName, a.department, a.status, a.notes});
         }
 
-        doctorModel.setRowCount(0);
-        for (DoctorRow d : MockClinicData.getDoctors()) {
-            long count = MockClinicData.getAppointments().stream().filter(a -> a.doctorId.equals(d.id)).count();
-            doctorModel.addRow(new Object[]{
-                    d.id,
-                    d.name,
-                    d.department,
-                    d.specialization,
-                    count,
-                    count,
-                    UIBranding.CURRENCY_SYMBOL + String.format("%.2f", d.fee * Math.max(1, count))
-            });
+        if (doctorModel != null) {
+            doctorModel.setRowCount(0);
+            for (DoctorRow d : MockClinicData.getDoctors()) {
+                long count = MockClinicData.getAppointments().stream().filter(a -> a.doctorId.equals(d.id)).count();
+                doctorModel.addRow(new Object[]{
+                        d.id,
+                        d.name,
+                        d.department,
+                        d.specialization,
+                        count,
+                        count,
+                        UIBranding.CURRENCY_SYMBOL + String.format("%.2f", d.fee * Math.max(1, count))
+                });
+            }
         }
 
         loadSelectedPatientHistory();

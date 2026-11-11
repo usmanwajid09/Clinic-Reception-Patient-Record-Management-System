@@ -2,6 +2,7 @@ package com.clinic.ui.panels;
 
 import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.dialogs.DoctorAvailabilityDialog;
 import com.clinic.ui.dialogs.PatientHistoryDialog;
 import com.clinic.ui.dialogs.PrescriptionItemDialog;
 import com.clinic.ui.mock.MockClinicData;
@@ -28,6 +29,7 @@ public class DoctorConsultationPanel extends JPanel {
     private ConsultationMock activeConsultation;
 
     private JLabel doctorSessionBadge;
+    private ModernButton dutyStatusBtn;
     private DefaultListModel<AppointmentRow> queueListModel;
     private JList<AppointmentRow> queueList;
 
@@ -76,7 +78,7 @@ public class DoctorConsultationPanel extends JPanel {
         titlePanel.add(titleLabel, BorderLayout.NORTH);
         titlePanel.add(subtitleLabel, BorderLayout.SOUTH);
 
-        JPanel doctorContextPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel doctorContextPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         doctorContextPanel.setOpaque(false);
 
         doctorSessionBadge = new JLabel();
@@ -88,7 +90,13 @@ public class DoctorConsultationPanel extends JPanel {
         DoctorRow doc = MockClinicData.findDoctorById(currentDoctorId).orElse(null);
         String docDisplay = doc != null ? doc.name + " (" + doc.specialization + ")" : (currentUser != null ? currentUser.fullName() : "Doctor Session");
         doctorSessionBadge.setText("Clinician: " + docDisplay);
+
+        dutyStatusBtn = ModernButton.secondary("Duty Availability");
+        dutyStatusBtn.addActionListener(e -> handleToggleOwnAvailability());
+        refreshDutyButtonLabel();
+
         doctorContextPanel.add(doctorSessionBadge);
+        doctorContextPanel.add(dutyStatusBtn);
 
         topPanel.add(titlePanel, BorderLayout.WEST);
         topPanel.add(doctorContextPanel, BorderLayout.EAST);
@@ -291,7 +299,26 @@ public class DoctorConsultationPanel extends JPanel {
         add(splitPane, BorderLayout.CENTER);
     }
 
+    private void refreshDutyButtonLabel() {
+        if (dutyStatusBtn == null) return;
+        DoctorRow doc = MockClinicData.findDoctorById(currentDoctorId).orElse(null);
+        String status = doc != null ? doc.status : "AVAILABLE";
+        dutyStatusBtn.setText("Duty: " + status);
+    }
+
+    private void handleToggleOwnAvailability() {
+        DoctorRow doc = MockClinicData.findDoctorById(currentDoctorId).orElse(null);
+        if (doc == null) return;
+        DoctorAvailabilityDialog dialog = new DoctorAvailabilityDialog(SwingUtilities.getWindowAncestor(this), doc);
+        dialog.setVisible(true);
+        if (dialog.isUpdated()) {
+            refreshDutyButtonLabel();
+            ToastNotification.showSuccess(this, "Availability Updated", doc.name + " marked as " + doc.status + ".");
+        }
+    }
+
     public void loadDoctorQueue() {
+        refreshDutyButtonLabel();
         queueListModel.clear();
         String today = LocalDate.now().toString();
         for (AppointmentRow app : MockClinicData.getAppointments()) {
