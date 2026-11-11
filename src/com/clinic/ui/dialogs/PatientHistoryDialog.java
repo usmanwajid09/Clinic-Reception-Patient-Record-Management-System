@@ -1,15 +1,12 @@
 package com.clinic.ui.dialogs;
 
-import com.clinic.model.Consultation;
-import com.clinic.model.Doctor;
-import com.clinic.model.Patient;
-import com.clinic.model.Prescription;
-import com.clinic.service.IDoctorService;
-import com.clinic.service.IPatientService;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.mock.MockClinicData;
+import com.clinic.ui.mock.MockClinicData.HistoryRow;
+import com.clinic.ui.mock.MockClinicData.PatientRow;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
-import com.clinic.util.DateTimeUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,21 +15,17 @@ import java.awt.*;
 import java.util.List;
 
 /**
- * Modal dialog for viewing a patient's historical visits and clinical consultations (FR4, FR22, FR29).
+ * Modal UI dialog displaying sample patient visit history.
  */
 public class PatientHistoryDialog extends JDialog {
-    private final Patient patient;
-    private final IPatientService patientService;
-    private final IDoctorService doctorService;
+    private final PatientRow patient;
 
-    public PatientHistoryDialog(Window owner, Patient patient, IPatientService patientService, IDoctorService doctorService) {
-        super(owner, "Medical History - " + patient.getName() + " (" + patient.getPatientId() + ")", ModalityType.APPLICATION_MODAL);
+    public PatientHistoryDialog(Window owner, PatientRow patient) {
+        super(owner, "Medical History - " + patient.name, ModalityType.APPLICATION_MODAL);
         this.patient = patient;
-        this.patientService = patientService;
-        this.doctorService = doctorService;
 
         initComponents();
-        setSize(850, 520);
+        setSize(860, 520);
         setLocationRelativeTo(owner);
     }
 
@@ -41,22 +34,20 @@ public class PatientHistoryDialog extends JDialog {
         root.setBackground(ThemeColors.BG_LIGHT);
         root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // Header with Patient Info Banner
+        // Patient Summary Header Card
         JPanel infoPanel = UIStyle.createCard();
         infoPanel.setLayout(new GridLayout(2, 3, 10, 6));
 
-        addInfoItem(infoPanel, "Patient ID", patient.getPatientId());
-        addInfoItem(infoPanel, "Full Name", patient.getName());
-        addInfoItem(infoPanel, "Age / Gender", patient.getAge() + " yrs / " + patient.getGender());
-        addInfoItem(infoPanel, "Contact", patient.getContactNumber());
-        addInfoItem(infoPanel, "Emergency Contact", patient.getEmergencyContact());
-        addInfoItem(infoPanel, "Registered Since", DateTimeUtil.formatDateTime(patient.getRegisteredAt()));
+        addInfoItem(infoPanel, "Patient ID", patient.id);
+        addInfoItem(infoPanel, "Full Name", patient.name);
+        addInfoItem(infoPanel, "DOB / Gender", patient.dob + " / " + patient.gender);
+        addInfoItem(infoPanel, "Contact", patient.phone);
+        addInfoItem(infoPanel, "Emergency Contact", patient.emergencyContact);
+        addInfoItem(infoPanel, "Address", patient.address);
 
         root.add(infoPanel, BorderLayout.NORTH);
 
-        // Consultations Table
-        List<Consultation> history = patientService.getPatientMedicalHistory(patient.getPatientId());
-
+        List<HistoryRow> history = MockClinicData.getHistoryForPatient(patient.id);
         String[] columns = {"Date & Time", "Doctor", "Department", "Symptoms", "Diagnosis", "Prescription"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
@@ -65,39 +56,12 @@ public class PatientHistoryDialog extends JDialog {
             }
         };
 
-        for (Consultation c : history) {
-            String doctorName = "N/A";
-            String department = "N/A";
-            Doctor doc = doctorService.getDoctorById(c.getDoctorId()).orElse(null);
-            if (doc != null) {
-                doctorName = doc.getName();
-                department = doc.getDepartment().getName();
-            }
-
-            String rxSummary = "No Rx";
-            Prescription rx = c.getPrescription();
-            if (rx != null && !rx.isEmpty()) {
-                rxSummary = rx.getItems().size() + " medication(s)";
-            }
-
-            model.addRow(new Object[]{
-                    DateTimeUtil.formatDateTime(c.getConsultationTime()),
-                    doctorName,
-                    department,
-                    c.getSymptoms(),
-                    c.getDiagnosis(),
-                    rxSummary
-            });
+        for (HistoryRow h : history) {
+            model.addRow(new Object[]{h.dateTime(), h.doctorName(), h.department(), h.symptoms(), h.diagnosis(), h.rxSummary()});
         }
 
         JTable table = new JTable(model);
         UIStyle.styleTable(table);
-        table.getColumnModel().getColumn(0).setPreferredWidth(130);
-        table.getColumnModel().getColumn(1).setPreferredWidth(130);
-        table.getColumnModel().getColumn(2).setPreferredWidth(110);
-        table.getColumnModel().getColumn(3).setPreferredWidth(160);
-        table.getColumnModel().getColumn(4).setPreferredWidth(160);
-        table.getColumnModel().getColumn(5).setPreferredWidth(100);
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createLineBorder(ThemeColors.BORDER));
@@ -105,7 +69,8 @@ public class PatientHistoryDialog extends JDialog {
 
         JPanel tableWrapper = new JPanel(new BorderLayout(0, 8));
         tableWrapper.setOpaque(false);
-        JLabel historyLabel = new JLabel("Completed Consultations & Clinical Encounters (" + history.size() + "):");
+        JLabel historyLabel = new JLabel("Past Consultations & Visit Records (" + history.size() + ")", IconFactory.getPatientsIcon(24), SwingConstants.LEFT);
+        historyLabel.setIconTextGap(8);
         historyLabel.setFont(UIStyle.FONT_HEADER);
         historyLabel.setForeground(ThemeColors.TEXT_PRIMARY);
         tableWrapper.add(historyLabel, BorderLayout.NORTH);
@@ -113,14 +78,11 @@ public class PatientHistoryDialog extends JDialog {
 
         root.add(tableWrapper, BorderLayout.CENTER);
 
-        // Footer
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         footer.setOpaque(false);
-
         ModernButton closeBtn = ModernButton.secondary("Close");
         closeBtn.addActionListener(e -> dispose());
         footer.add(closeBtn);
-
         root.add(footer, BorderLayout.SOUTH);
 
         setContentPane(root);
