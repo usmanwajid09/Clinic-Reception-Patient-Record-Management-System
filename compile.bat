@@ -13,7 +13,7 @@ if exist "C:\Program Files\Microsoft\jdk-21.0.13.21-hotspot\bin\javac.exe" (
 
 powershell -NoProfile -Command "(Get-ChildItem -Path src -Recurse -Filter *.java).FullName.Replace('\', '/') | ForEach-Object { '\"' + $_ + '\"' } | Set-Content sources.txt -Encoding ascii"
 
-"%JAVAC_BIN%" -cp "lib/*;bin" -d bin @sources.txt
+"%JAVAC_BIN%" -encoding UTF-8 -cp "lib/*;bin" -d bin @sources.txt
 set COMPILE_ERR=%ERRORLEVEL%
 if exist sources.txt del sources.txt
 
