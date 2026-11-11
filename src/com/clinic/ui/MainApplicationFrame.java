@@ -2,7 +2,11 @@ package com.clinic.ui;
 
 import com.clinic.ui.animation.Animator;
 import com.clinic.ui.animation.ColorInterpolator;
+import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.dialogs.DoctorAvailabilityDialog;
+import com.clinic.ui.mock.MockClinicData;
+import com.clinic.ui.mock.MockClinicData.DoctorRow;
 import com.clinic.ui.mock.MockClinicData.UiRole;
 import com.clinic.ui.mock.MockClinicData.UiUser;
 import com.clinic.ui.panels.*;
@@ -97,22 +101,20 @@ public class MainApplicationFrame extends JFrame {
                 doctorPanel = new DoctorManagementPanel(currentRole);
                 appointmentPanel = new AppointmentManagementPanel(currentUser);
                 billingPanel = new BillingManagementPanel();
+                reportsPanel = new ReportsPanel(UiRole.RECEPTIONIST);
 
                 contentCards.add(patientPanel, "PATIENTS");
                 contentCards.add(doctorPanel, "DOCTORS");
                 contentCards.add(appointmentPanel, "APPOINTMENTS");
                 contentCards.add(billingPanel, "BILLING");
+                contentCards.add(reportsPanel, "REPORTS");
             }
             case ADMINISTRATOR -> {
                 doctorPanel = new DoctorManagementPanel(currentRole);
-                reportsPanel = new ReportsPanel();
-                patientPanel = new PatientManagementPanel(currentRole);
-                appointmentPanel = new AppointmentManagementPanel(currentUser);
+                reportsPanel = new ReportsPanel(UiRole.ADMINISTRATOR);
 
                 contentCards.add(doctorPanel, "DOCTORS");
                 contentCards.add(reportsPanel, "REPORTS");
-                contentCards.add(patientPanel, "PATIENTS");
-                contentCards.add(appointmentPanel, "APPOINTMENTS");
             }
         }
     }
@@ -125,7 +127,6 @@ public class MainApplicationFrame extends JFrame {
                 new EmptyBorder(10, 20, 10, 24)
         ));
 
-        // Left: Hamburger toggle + Clinic Branding
         JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         titleBox.setOpaque(false);
 
@@ -147,7 +148,6 @@ public class MainApplicationFrame extends JFrame {
         titleBox.add(clinicTitle);
         titleBox.add(tagLabel);
 
-        // Right: User Profile Dropdown + Switch Role Button
         JPanel userBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         userBox.setOpaque(false);
 
@@ -193,7 +193,6 @@ public class MainApplicationFrame extends JFrame {
         sb.setPreferredSize(new Dimension(250, getHeight()));
         sb.setBorder(new EmptyBorder(22, 14, 20, 14));
 
-        // Brand Banner
         brandBox = new JPanel();
         brandBox.setLayout(new BoxLayout(brandBox, BoxLayout.Y_AXIS));
         brandBox.setOpaque(false);
@@ -234,7 +233,6 @@ public class MainApplicationFrame extends JFrame {
 
         sb.add(brandBox, BorderLayout.NORTH);
 
-        // Role-Filtered Navigation Menu
         JPanel navMenu = new JPanel();
         navMenu.setLayout(new BoxLayout(navMenu, BoxLayout.Y_AXIS));
         navMenu.setOpaque(false);
@@ -245,24 +243,23 @@ public class MainApplicationFrame extends JFrame {
             case DOCTOR -> {
                 addNavButton(navMenu, "CONSULTATIONS", "Clinical Workstation", IconFactory.getWorkstationIcon(24));
                 addNavButton(navMenu, "APPOINTMENTS", "My Appointments", IconFactory.getAppointmentsIcon(24));
+                addNavButton(navMenu, "DOCTOR_AVAILABILITY", "Duty Availability", IconFactory.getDoctorsIcon(24));
             }
             case RECEPTIONIST -> {
                 addNavButton(navMenu, "PATIENTS", "Patient Records", IconFactory.getPatientsIcon(24));
                 addNavButton(navMenu, "DOCTORS", "Doctor Directory", IconFactory.getDoctorsIcon(24));
                 addNavButton(navMenu, "APPOINTMENTS", "Appointment Desk", IconFactory.getAppointmentsIcon(24));
                 addNavButton(navMenu, "BILLING", "Billing & Receipts", IconFactory.getBillingIcon(24));
+                addNavButton(navMenu, "REPORTS", "Clinic Reports", IconFactory.getReportsIcon(24));
             }
             case ADMINISTRATOR -> {
                 addNavButton(navMenu, "DOCTORS", "Doctor Management", IconFactory.getDoctorsIcon(24));
                 addNavButton(navMenu, "REPORTS", "Analytics & Revenue", IconFactory.getReportsIcon(24));
-                addNavButton(navMenu, "PATIENTS", "Patient Directory", IconFactory.getPatientsIcon(24));
-                addNavButton(navMenu, "APPOINTMENTS", "Clinic Appointments", IconFactory.getAppointmentsIcon(24));
             }
         }
 
         sb.add(navMenu, BorderLayout.CENTER);
 
-        // Footer
         JPanel bottomBox = new JPanel(new BorderLayout());
         bottomBox.setOpaque(false);
         versionLabel = new JLabel("Role: " + currentRole.getDisplayName());
@@ -296,13 +293,20 @@ public class MainApplicationFrame extends JFrame {
     }
 
     public void showCard(String cardKey) {
+        if ("DOCTOR_AVAILABILITY".equals(cardKey)) {
+            openDoctorAvailabilityDialog();
+            return;
+        }
+
         cardLayout.show(contentCards, cardKey);
 
         for (Map.Entry<String, NavButton> entry : navButtons.entrySet()) {
             entry.getValue().setActive(entry.getKey().equals(cardKey));
         }
 
-        if ("PATIENTS".equals(cardKey) && patientPanel != null) {
+        if ("DASHBOARD".equals(cardKey) && dashboardPanel != null) {
+            dashboardPanel.refreshStats();
+        } else if ("PATIENTS".equals(cardKey) && patientPanel != null) {
             patientPanel.loadPatients();
         } else if ("DOCTORS".equals(cardKey) && doctorPanel != null) {
             doctorPanel.loadDoctors();
@@ -314,6 +318,20 @@ public class MainApplicationFrame extends JFrame {
             billingPanel.loadBills();
         } else if ("REPORTS".equals(cardKey) && reportsPanel != null) {
             reportsPanel.runReports();
+        }
+    }
+
+    private void openDoctorAvailabilityDialog() {
+        String docId = currentUser != null && currentUser.linkedDoctorId() != null ? currentUser.linkedDoctorId() : "DOC-101";
+        DoctorRow doc = MockClinicData.findDoctorById(docId).orElse(null);
+        if (doc == null) return;
+
+        DoctorAvailabilityDialog dialog = new DoctorAvailabilityDialog(this, doc);
+        dialog.setVisible(true);
+        if (dialog.isUpdated()) {
+            if (dashboardPanel != null) dashboardPanel.refreshStats();
+            if (consultationPanel != null) consultationPanel.loadDoctorQueue();
+            ToastNotification.showSuccess(dashboardPanel, "Duty Availability Updated", doc.name + " is now marked " + doc.status + ".");
         }
     }
 
@@ -333,9 +351,6 @@ public class MainApplicationFrame extends JFrame {
         });
     }
 
-    /**
-     * Custom animated sidebar navigation button with smooth hover interpolation.
-     */
     private static class NavButton extends JButton {
         private final String fullText;
         private boolean isActive = false;

@@ -4,6 +4,7 @@ import com.clinic.ui.animation.Animator;
 import com.clinic.ui.animation.ColorInterpolator;
 import com.clinic.ui.components.StatCard;
 import com.clinic.ui.mock.MockClinicData;
+import com.clinic.ui.mock.MockClinicData.DoctorRow;
 import com.clinic.ui.mock.MockClinicData.UiRole;
 import com.clinic.ui.mock.MockClinicData.UiUser;
 import com.clinic.ui.theme.IconFactory;
@@ -26,6 +27,10 @@ public class DashboardHomePanel extends JPanel {
     private final UiUser currentUser;
     private final Consumer<String> navigateAction;
 
+    private StatCard card1;
+    private StatCard card2;
+    private StatCard card3;
+
     public DashboardHomePanel(UiUser currentUser, Consumer<String> navigateAction) {
         this.currentUser = currentUser;
         this.navigateAction = navigateAction;
@@ -35,12 +40,12 @@ public class DashboardHomePanel extends JPanel {
         setBorder(new EmptyBorder(24, 24, 24, 24));
 
         initComponents();
+        refreshStats();
     }
 
     private void initComponents() {
         UiRole role = currentUser != null ? currentUser.role() : UiRole.RECEPTIONIST;
 
-        // Top Greeting + KPI Row
         JPanel topSection = new JPanel(new BorderLayout(0, 16));
         topSection.setOpaque(false);
 
@@ -66,7 +71,6 @@ public class DashboardHomePanel extends JPanel {
         topSection.add(statsStrip, BorderLayout.CENTER);
         add(topSection, BorderLayout.NORTH);
 
-        // Role-Specific Quick Action Module Cards
         JPanel centerWrapper = new JPanel(new BorderLayout(0, 12));
         centerWrapper.setOpaque(false);
 
@@ -81,7 +85,7 @@ public class DashboardHomePanel extends JPanel {
         switch (role) {
             case RECEPTIONIST -> {
                 moduleGrid.add(new ModuleCard("PATIENTS", "Patient Records & Registration",
-                        "Register walk-in patients, search demographics, and inspect visit logs.",
+                        "Register walk-in patients, update demographics, and inspect visit logs.",
                         IconFactory.getPatientsIcon(32), ThemeColors.ACCENT));
                 moduleGrid.add(new ModuleCard("DOCTORS", "Doctor Directory & Availability",
                         "Check specialist schedules and toggle daily clinician availability status.",
@@ -92,6 +96,9 @@ public class DashboardHomePanel extends JPanel {
                 moduleGrid.add(new ModuleCard("BILLING", "Cashier Terminal & Receipts",
                         "Settle pending consultation invoices and preview official payment receipts.",
                         IconFactory.getBillingIcon(32), ThemeColors.WARNING));
+                moduleGrid.add(new ModuleCard("REPORTS", "Clinic Desk Reports",
+                        "Generate appointment lists, patient visit histories, and revenue reports.",
+                        IconFactory.getReportsIcon(32), new Color(124, 58, 237)));
             }
             case DOCTOR -> {
                 moduleGrid.add(new ModuleCard("CONSULTATIONS", "Clinical Workstation & Rx",
@@ -100,20 +107,17 @@ public class DashboardHomePanel extends JPanel {
                 moduleGrid.add(new ModuleCard("APPOINTMENTS", "My Scheduled Queue",
                         "Inspect your daily appointment slots, token numbers, and attendance statuses.",
                         IconFactory.getAppointmentsIcon(32), ThemeColors.ACCENT));
+                moduleGrid.add(new ModuleCard("DOCTOR_AVAILABILITY", "Mark Duty Availability",
+                        "Set your daily availability status (Available or Unavailable) for scheduled dates.",
+                        IconFactory.getDoctorsIcon(32), ThemeColors.SUCCESS));
             }
             case ADMINISTRATOR -> {
                 moduleGrid.add(new ModuleCard("DOCTORS", "Clinician & Schedule Management",
-                        "Onboard physicians, assign departments, and define weekly consultation slots.",
+                        "Onboard physicians, assign departments, configure schedules, and toggle availability.",
                         IconFactory.getDoctorsIcon(32), ThemeColors.PRIMARY));
                 moduleGrid.add(new ModuleCard("REPORTS", "Clinical Analytics & Revenue",
-                        "Inspect appointment statistics, doctor performance, and clinic revenue breakdowns.",
+                        "Generate appointment, doctor performance, patient history, and revenue reports.",
                         IconFactory.getReportsIcon(32), new Color(124, 58, 237)));
-                moduleGrid.add(new ModuleCard("PATIENTS", "Patient Directory (View)",
-                        "Audit registered patient records and inspect lifetime visit summaries.",
-                        IconFactory.getPatientsIcon(32), ThemeColors.ACCENT));
-                moduleGrid.add(new ModuleCard("APPOINTMENTS", "Clinic Appointment Oversight",
-                        "Monitor clinic-wide daily appointment queues and slot completion status.",
-                        IconFactory.getAppointmentsIcon(32), ThemeColors.INFO));
             }
         }
 
@@ -129,16 +133,40 @@ public class DashboardHomePanel extends JPanel {
         JPanel strip = new JPanel(new GridLayout(1, 3, 14, 0));
         strip.setOpaque(false);
 
-        long totalPatients = MockClinicData.getPatients().size();
-        long totalDoctors = MockClinicData.getDoctors().size();
-        long activeAppts = MockClinicData.getAppointments().stream().filter(a -> "SCHEDULED".equals(a.status)).count();
-        long unpaidBills = MockClinicData.getBills().stream().filter(b -> "UNPAID".equals(b.status)).count();
-
         switch (role) {
             case RECEPTIONIST -> {
-                strip.add(new StatCard("Registered Patients", String.valueOf(totalPatients), "Sample directory profiles", ThemeColors.ACCENT));
-                strip.add(new StatCard("Scheduled Queue", String.valueOf(activeAppts), "Awaiting consultation today", ThemeColors.INFO));
-                strip.add(new StatCard("Pending Invoices", String.valueOf(unpaidBills), "Front-desk cashier counter", ThemeColors.WARNING));
+                card1 = new StatCard("Registered Patients", "0", "Sample directory profiles", ThemeColors.ACCENT);
+                card2 = new StatCard("Scheduled Queue", "0", "Awaiting consultation today", ThemeColors.INFO);
+                card3 = new StatCard("Pending Invoices", "0", "Front-desk cashier counter", ThemeColors.WARNING);
+            }
+            case DOCTOR -> {
+                card1 = new StatCard("My Waiting Patients", "0", "Ready in clinical queue", ThemeColors.INFO);
+                card2 = new StatCard("Completed Today", "0", "Signed & locked encounters", ThemeColors.SUCCESS);
+                card3 = new StatCard("Duty Status", "AVAILABLE", "Current clinician schedule status", ThemeColors.PRIMARY);
+            }
+            case ADMINISTRATOR -> {
+                card1 = new StatCard("Active Clinicians", "0", "Across 5 medical departments", ThemeColors.PRIMARY);
+                card2 = new StatCard("Total Appointments", "0", "Logged OPD visits", ThemeColors.INFO);
+                card3 = new StatCard("Collected Revenue", UIBranding.CURRENCY_SYMBOL + "0", "Sample billing summary", ThemeColors.SUCCESS);
+            }
+        }
+
+        strip.add(card1);
+        strip.add(card2);
+        strip.add(card3);
+        return strip;
+    }
+
+    public void refreshStats() {
+        UiRole role = currentUser != null ? currentUser.role() : UiRole.RECEPTIONIST;
+        switch (role) {
+            case RECEPTIONIST -> {
+                long totalPatients = MockClinicData.getPatients().size();
+                long activeAppts = MockClinicData.getAppointments().stream().filter(a -> "SCHEDULED".equals(a.status)).count();
+                long unpaidBills = MockClinicData.getBills().stream().filter(b -> "UNPAID".equals(b.status)).count();
+                card1.setValue(String.valueOf(totalPatients));
+                card2.setValue(String.valueOf(activeAppts));
+                card3.setValue(String.valueOf(unpaidBills));
             }
             case DOCTOR -> {
                 String docId = currentUser != null && currentUser.linkedDoctorId() != null ? currentUser.linkedDoctorId() : "DOC-101";
@@ -146,24 +174,22 @@ public class DashboardHomePanel extends JPanel {
                         .filter(a -> a.doctorId.equals(docId) && "SCHEDULED".equals(a.status)).count();
                 long myDone = MockClinicData.getAppointments().stream()
                         .filter(a -> a.doctorId.equals(docId) && "COMPLETED".equals(a.status)).count();
-                strip.add(new StatCard("My Waiting Patients", String.valueOf(myPending), "Ready in clinical queue", ThemeColors.INFO));
-                strip.add(new StatCard("Completed Today", String.valueOf(myDone), "Signed & locked encounters", ThemeColors.SUCCESS));
-                strip.add(new StatCard("Duty Status", "AVAILABLE", "Active OPD consultation hours", ThemeColors.PRIMARY));
+                DoctorRow doc = MockClinicData.findDoctorById(docId).orElse(null);
+                card1.setValue(String.valueOf(myPending));
+                card2.setValue(String.valueOf(myDone));
+                card3.setValue(doc != null ? doc.status : "AVAILABLE");
             }
             case ADMINISTRATOR -> {
+                long totalDoctors = MockClinicData.getDoctors().size();
                 double collected = MockClinicData.getBills().stream()
                         .filter(b -> "PAID".equals(b.status)).mapToDouble(b -> b.totalAmount).sum();
-                strip.add(new StatCard("Active Clinicians", String.valueOf(totalDoctors), "Across 5 medical departments", ThemeColors.PRIMARY));
-                strip.add(new StatCard("Total Appointments", String.valueOf(MockClinicData.getAppointments().size()), "Logged OPD visits", ThemeColors.INFO));
-                strip.add(new StatCard("Collected Revenue", UIBranding.CURRENCY_SYMBOL + String.format("%.0f", collected), "Sample billing summary", ThemeColors.SUCCESS));
+                card1.setValue(String.valueOf(totalDoctors));
+                card2.setValue(String.valueOf(MockClinicData.getAppointments().size()));
+                card3.setValue(UIBranding.CURRENCY_SYMBOL + String.format("%.0f", collected));
             }
         }
-        return strip;
     }
 
-    /**
-     * Animated quick-launch module card inspired by modern card-hub dashboards.
-     */
     private class ModuleCard extends JPanel {
         private final Color accent;
         private float hoverProgress = 0.0f;
@@ -176,7 +202,6 @@ public class DashboardHomePanel extends JPanel {
             setBorder(new EmptyBorder(22, 22, 22, 22));
             setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            // Left Icon Badge
             JPanel iconBox = new JPanel(new GridBagLayout()) {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -193,7 +218,6 @@ public class DashboardHomePanel extends JPanel {
             iconBox.add(new JLabel(icon));
             add(iconBox, BorderLayout.WEST);
 
-            // Text Info
             JPanel textBox = new JPanel();
             textBox.setLayout(new BoxLayout(textBox, BoxLayout.Y_AXIS));
             textBox.setOpaque(false);
