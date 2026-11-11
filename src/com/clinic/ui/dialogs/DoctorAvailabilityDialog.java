@@ -1,8 +1,8 @@
 package com.clinic.ui.dialogs;
 
-import com.clinic.model.Doctor;
-import com.clinic.service.IDoctorService;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.mock.MockClinicData.DoctorRow;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -10,25 +10,21 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
 /**
- * Modal dialog for marking a doctor as Available or Unavailable for a specified day (FR9).
+ * Modal UI dialog for toggling doctor availability status visually.
  */
 public class DoctorAvailabilityDialog extends JDialog {
-    private final Doctor doctor;
-    private final IDoctorService doctorService;
+    private final DoctorRow doctor;
     private boolean updated = false;
 
     private JTextField dateField;
     private JRadioButton availableRadio;
     private JRadioButton unavailableRadio;
 
-    public DoctorAvailabilityDialog(Window owner, Doctor doctor, IDoctorService doctorService) {
-        super(owner, "Daily Availability - " + doctor.getName(), ModalityType.APPLICATION_MODAL);
+    public DoctorAvailabilityDialog(Window owner, DoctorRow doctor) {
+        super(owner, "Daily Availability - " + doctor.name, ModalityType.APPLICATION_MODAL);
         this.doctor = doctor;
-        this.doctorService = doctorService;
 
         initComponents();
         pack();
@@ -41,14 +37,14 @@ public class DoctorAvailabilityDialog extends JDialog {
         root.setBackground(ThemeColors.BG_LIGHT);
         root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Daily Availability: " + doctor.getName());
+        JLabel titleLabel = new JLabel("Daily Availability: " + doctor.name, IconFactory.getDoctorsIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Mark clinician as Available or Unavailable for a specific date (FR9)");
+        JLabel subtitleLabel = new JLabel("Set clinician duty availability status");
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
@@ -56,7 +52,6 @@ public class DoctorAvailabilityDialog extends JDialog {
         headerPanel.add(subtitleLabel, BorderLayout.SOUTH);
         root.add(headerPanel, BorderLayout.NORTH);
 
-        // Form
         JPanel card = UIStyle.createCard();
         card.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -70,7 +65,7 @@ public class DoctorAvailabilityDialog extends JDialog {
         availableRadio.setFont(UIStyle.FONT_REGULAR);
         availableRadio.setOpaque(false);
 
-        unavailableRadio = new JRadioButton("Unavailable (Leave / Emergency absence)");
+        unavailableRadio = new JRadioButton("Unavailable (On leave / Off duty)");
         unavailableRadio.setFont(UIStyle.FONT_REGULAR);
         unavailableRadio.setOpaque(false);
 
@@ -78,8 +73,7 @@ public class DoctorAvailabilityDialog extends JDialog {
         group.add(availableRadio);
         group.add(unavailableRadio);
 
-        // Pre-check based on today's availability
-        if (doctor.isAvailableOn(LocalDate.now())) {
+        if ("AVAILABLE".equalsIgnoreCase(doctor.status)) {
             availableRadio.setSelected(true);
         } else {
             unavailableRadio.setSelected(true);
@@ -101,7 +95,6 @@ public class DoctorAvailabilityDialog extends JDialog {
 
         root.add(card, BorderLayout.CENTER);
 
-        // Footer Actions
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         footer.setOpaque(false);
 
@@ -119,22 +112,7 @@ public class DoctorAvailabilityDialog extends JDialog {
     }
 
     private void handleUpdate() {
-        String dateStr = dateField.getText().trim();
-        LocalDate date;
-        try {
-            date = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this, "Invalid Date format. Use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        boolean available = availableRadio.isSelected();
-        doctorService.setDoctorAvailabilityForDate(doctor.getDoctorId(), date, available);
-
-        JOptionPane.showMessageDialog(this,
-                "Doctor " + doctor.getName() + " marked as " + (available ? "AVAILABLE" : "UNAVAILABLE") + " for " + date + " (FR9).",
-                "Status Updated", JOptionPane.INFORMATION_MESSAGE);
-
+        doctor.status = availableRadio.isSelected() ? "AVAILABLE" : "UNAVAILABLE";
         this.updated = true;
         dispose();
     }

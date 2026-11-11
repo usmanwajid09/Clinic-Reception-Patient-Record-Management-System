@@ -132,3 +132,4 @@ public final class IconFactory {
         return getIcon("clinic_logo", size);
     }
 }
+

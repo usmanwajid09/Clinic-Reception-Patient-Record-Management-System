@@ -1,36 +1,28 @@
 package com.clinic.ui.panels;
 
-import com.clinic.model.Department;
-import com.clinic.model.Doctor;
-import com.clinic.model.Role;
-import com.clinic.model.User;
-import com.clinic.service.IAuthService;
-import com.clinic.service.IDoctorService;
 import com.clinic.ui.animation.ToastNotification;
 import com.clinic.ui.components.ModernButton;
 import com.clinic.ui.dialogs.DoctorAvailabilityDialog;
 import com.clinic.ui.dialogs.DoctorDialog;
 import com.clinic.ui.dialogs.DoctorScheduleDialog;
+import com.clinic.ui.mock.MockClinicData;
+import com.clinic.ui.mock.MockClinicData.DoctorRow;
+import com.clinic.ui.mock.MockClinicData.UiRole;
 import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
+import com.clinic.ui.theme.UIBranding;
 import com.clinic.ui.theme.UIStyle;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * Doctor Directory and Administrative Management Panel (FR6 - FR10).
- * Implements role-based authority rules: Administrator configures doctors and schedules,
- * while front-desk staff inspects directories and sets daily duty availability.
+ * Presentation panel for Clinician Directory, Schedule Configuration, and Duty Availability UI.
  */
 public class DoctorManagementPanel extends JPanel {
-    private final IDoctorService doctorService;
-    private final IAuthService authService;
+    private final UiRole currentRole;
 
     private JTable doctorTable;
     private DefaultTableModel tableModel;
@@ -41,28 +33,22 @@ public class DoctorManagementPanel extends JPanel {
     private ModernButton scheduleBtn;
     private ModernButton availBtn;
 
-    public DoctorManagementPanel(IDoctorService doctorService, IAuthService authService) {
-        this.doctorService = doctorService;
-        this.authService = authService;
+    public DoctorManagementPanel(UiRole currentRole) {
+        this.currentRole = currentRole != null ? currentRole : UiRole.ADMINISTRATOR;
 
         setLayout(new BorderLayout(0, 16));
         setBackground(ThemeColors.BG_LIGHT);
         setBorder(new EmptyBorder(24, 24, 24, 24));
 
         initComponents();
+        applyRoleVisibility();
         loadDoctors();
-        applyRolePermissions();
-    }
-
-    public DoctorManagementPanel(IDoctorService doctorService) {
-        this(doctorService, null);
     }
 
     private void initComponents() {
         JPanel topPanel = new JPanel(new BorderLayout(0, 12));
         topPanel.setOpaque(false);
 
-        // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
         JLabel titleLabel = new JLabel("Clinician Directory & Schedule Operations", IconFactory.getDoctorsIcon(24), SwingConstants.LEFT);
@@ -70,40 +56,36 @@ public class DoctorManagementPanel extends JPanel {
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Browse specialists (FR10), manage daily duty availability (FR9), and configure clinician profiles (FR6-8)");
+        JLabel subtitleLabel = new JLabel("Browse specialists by department, toggle duty status, and configure clinician timetables");
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
         titlePanel.add(titleLabel, BorderLayout.NORTH);
         titlePanel.add(subtitleLabel, BorderLayout.SOUTH);
 
-        // Filter & Action Toolbar (FR10)
         JPanel toolbar = new JPanel(new BorderLayout(16, 0));
         toolbar.setOpaque(false);
 
         JPanel filterBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filterBox.setOpaque(false);
 
-        JLabel deptLabel = new JLabel("Department (FR10):");
+        JLabel deptLabel = new JLabel("Department:");
         deptLabel.setFont(UIStyle.FONT_BOLD);
         departmentFilter = new JComboBox<>();
         departmentFilter.setFont(UIStyle.FONT_REGULAR);
         departmentFilter.setBackground(Color.WHITE);
         departmentFilter.addItem("All Departments");
-        for (Department d : doctorService.getAllDepartments()) {
-            departmentFilter.addItem(d.getName());
+        for (String d : MockClinicData.DEPARTMENTS) {
+            departmentFilter.addItem(d);
         }
         departmentFilter.addActionListener(e -> filterDoctors());
 
-        JLabel specLabel = new JLabel("Specialization (FR10):");
+        JLabel specLabel = new JLabel("Specialization:");
         specLabel.setFont(UIStyle.FONT_BOLD);
         specializationFilter = new JComboBox<>();
         specializationFilter.setFont(UIStyle.FONT_REGULAR);
         specializationFilter.setBackground(Color.WHITE);
-        specializationFilter.addItem("All Specializations");
-        for (String spec : doctorService.getAllDoctors().stream().map(Doctor::getSpecialization).distinct().sorted().toList()) {
-            specializationFilter.addItem(spec);
-        }
+        populateSpecFilter();
         specializationFilter.addActionListener(e -> filterDoctors());
 
         filterBox.add(deptLabel);
@@ -111,25 +93,24 @@ public class DoctorManagementPanel extends JPanel {
         filterBox.add(specLabel);
         filterBox.add(specializationFilter);
 
-        // Action Buttons
         JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnBox.setOpaque(false);
 
-        registerBtn = new ModernButton("+ Register Doctor (FR6)");
+        registerBtn = new ModernButton("+ Register Doctor");
         registerBtn.addActionListener(e -> {
-            DoctorDialog dialog = new DoctorDialog(SwingUtilities.getWindowAncestor(this), doctorService);
+            DoctorDialog dialog = new DoctorDialog(SwingUtilities.getWindowAncestor(this));
             dialog.setVisible(true);
             if (dialog.isSaved()) {
-                refreshFilters();
+                populateSpecFilter();
                 loadDoctors();
-                ToastNotification.showSuccess(this, "Doctor Registered", "New clinician successfully onboarded.");
+                ToastNotification.showSuccess(this, "Doctor Added", "New clinician card added to directory view.");
             }
         });
 
-        scheduleBtn = ModernButton.secondary("Set Schedule (FR8)");
+        scheduleBtn = ModernButton.secondary("Configure Schedule");
         scheduleBtn.addActionListener(e -> handleScheduleConfig());
 
-        availBtn = ModernButton.secondary("Duty Status (FR9)");
+        availBtn = ModernButton.secondary("Toggle Availability");
         availBtn.addActionListener(e -> handleAvailabilityToggle());
 
         btnBox.add(availBtn);
@@ -143,7 +124,6 @@ public class DoctorManagementPanel extends JPanel {
         topPanel.add(toolbar, BorderLayout.SOUTH);
         add(topPanel, BorderLayout.NORTH);
 
-        // Table
         String[] columns = {"Doctor ID", "Doctor Name", "Department", "Specialization", "Qualifications", "Consultation Fee", "Working Days", "Today's Status"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -162,102 +142,49 @@ public class DoctorManagementPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    /**
-     * Enforces role-based visibility rules: Only Administrators can register doctors and set schedules.
-     */
-    public void applyRolePermissions() {
-        if (authService != null) {
-            User user = authService.getCurrentUser().orElse(null);
-            boolean isAdmin = user != null && user.getRole() == Role.ADMINISTRATOR;
-            registerBtn.setVisible(isAdmin);
-            scheduleBtn.setVisible(isAdmin);
-        }
+    private void populateSpecFilter() {
+        if (specializationFilter == null) return;
+        specializationFilter.removeAllItems();
+        specializationFilter.addItem("All Specializations");
+        MockClinicData.getDoctors().stream()
+                .map(d -> d.specialization)
+                .distinct()
+                .sorted()
+                .forEach(specializationFilter::addItem);
+    }
+
+    private void applyRoleVisibility() {
+        boolean isAdmin = currentRole == UiRole.ADMINISTRATOR;
+        registerBtn.setVisible(isAdmin);
+        scheduleBtn.setVisible(isAdmin);
     }
 
     public void loadDoctors() {
-        applyRolePermissions();
-        tableModel.setRowCount(0);
-        LocalDate today = LocalDate.now();
-
-        List<Doctor> doctors = doctorService.getAllDoctors();
-        for (Doctor doc : doctors) {
-            boolean availableToday = doc.isAvailableOn(today);
-            Department dept = doc.getDepartment();
-            String deptName = dept != null ? dept.getName() : "Unassigned";
-
-            String workingDaysStr = doc.getWorkingDays().stream()
-                    .map(d -> d.name().substring(0, 3))
-                    .collect(Collectors.joining(", "));
-
-            tableModel.addRow(new Object[]{
-                    doc.getDoctorId(),
-                    doc.getName(),
-                    deptName,
-                    doc.getSpecialization(),
-                    doc.getQualification(),
-                    "Rs. " + String.format("%.2f", doc.getConsultationFee()),
-                    workingDaysStr.isEmpty() ? "None" : workingDaysStr,
-                    availableToday ? "AVAILABLE" : "UNAVAILABLE"
-            });
-        }
+        filterDoctors();
     }
 
     private void filterDoctors() {
         String selectedDept = (String) departmentFilter.getSelectedItem();
         String selectedSpec = (String) specializationFilter.getSelectedItem();
 
-        String deptId = null;
-        if (selectedDept != null && !selectedDept.equals("All Departments")) {
-            for (Department d : doctorService.getAllDepartments()) {
-                if (d.getName().equalsIgnoreCase(selectedDept)) {
-                    deptId = d.getDepartmentId();
-                    break;
-                }
-            }
-        }
-
-        String spec = null;
-        if (selectedSpec != null && !selectedSpec.equals("All Specializations")) {
-            spec = selectedSpec;
-        }
-
-        List<Doctor> filtered = doctorService.filterDoctors(deptId, spec);
         tableModel.setRowCount(0);
-        LocalDate today = LocalDate.now();
-
-        for (Doctor doc : filtered) {
-            boolean availableToday = doc.isAvailableOn(today);
-            Department dept = doc.getDepartment();
-            String deptName = dept != null ? dept.getName() : "Unassigned";
-
-            String workingDaysStr = doc.getWorkingDays().stream()
-                    .map(d -> d.name().substring(0, 3))
-                    .collect(Collectors.joining(", "));
-
+        for (DoctorRow doc : MockClinicData.getDoctors()) {
+            if (selectedDept != null && !"All Departments".equals(selectedDept) && !doc.department.equalsIgnoreCase(selectedDept)) {
+                continue;
+            }
+            if (selectedSpec != null && !"All Specializations".equals(selectedSpec) && !doc.specialization.equalsIgnoreCase(selectedSpec)) {
+                continue;
+            }
             tableModel.addRow(new Object[]{
-                    doc.getDoctorId(),
-                    doc.getName(),
-                    deptName,
-                    doc.getSpecialization(),
-                    doc.getQualification(),
-                    "Rs. " + String.format("%.2f", doc.getConsultationFee()),
-                    workingDaysStr.isEmpty() ? "None" : workingDaysStr,
-                    availableToday ? "AVAILABLE" : "UNAVAILABLE"
+                    doc.id,
+                    doc.name,
+                    doc.department,
+                    doc.specialization,
+                    doc.qualification,
+                    UIBranding.CURRENCY_SYMBOL + String.format("%.2f", doc.fee),
+                    doc.workingDays,
+                    doc.status
             });
-        }
-    }
-
-    private void refreshFilters() {
-        departmentFilter.removeAllItems();
-        departmentFilter.addItem("All Departments");
-        for (Department d : doctorService.getAllDepartments()) {
-            departmentFilter.addItem(d.getName());
-        }
-
-        specializationFilter.removeAllItems();
-        specializationFilter.addItem("All Specializations");
-        for (String spec : doctorService.getAllDoctors().stream().map(Doctor::getSpecialization).distinct().sorted().toList()) {
-            specializationFilter.addItem(spec);
         }
     }
 
@@ -268,12 +195,12 @@ public class DoctorManagementPanel extends JPanel {
             return;
         }
         String docId = (String) tableModel.getValueAt(row, 0);
-        doctorService.getDoctorById(docId).ifPresent(doc -> {
-            DoctorScheduleDialog dialog = new DoctorScheduleDialog(SwingUtilities.getWindowAncestor(this), doc, doctorService);
+        MockClinicData.findDoctorById(docId).ifPresent(doc -> {
+            DoctorScheduleDialog dialog = new DoctorScheduleDialog(SwingUtilities.getWindowAncestor(this), doc);
             dialog.setVisible(true);
             if (dialog.isSaved()) {
                 loadDoctors();
-                ToastNotification.showSuccess(this, "Schedule Updated", "Working days & slots saved for " + doc.getName());
+                ToastNotification.showSuccess(this, "Schedule Updated", "Working days updated for " + doc.name);
             }
         });
     }
@@ -285,12 +212,12 @@ public class DoctorManagementPanel extends JPanel {
             return;
         }
         String docId = (String) tableModel.getValueAt(row, 0);
-        doctorService.getDoctorById(docId).ifPresent(doc -> {
-            DoctorAvailabilityDialog dialog = new DoctorAvailabilityDialog(SwingUtilities.getWindowAncestor(this), doc, doctorService);
+        MockClinicData.findDoctorById(docId).ifPresent(doc -> {
+            DoctorAvailabilityDialog dialog = new DoctorAvailabilityDialog(SwingUtilities.getWindowAncestor(this), doc);
             dialog.setVisible(true);
             if (dialog.isUpdated()) {
                 loadDoctors();
-                ToastNotification.showSuccess(this, "Status Updated", "Duty availability adjusted for " + doc.getName());
+                ToastNotification.showSuccess(this, "Status Updated", "Duty status adjusted for " + doc.name);
             }
         });
     }

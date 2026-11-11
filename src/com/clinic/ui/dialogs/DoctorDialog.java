@@ -1,40 +1,31 @@
 package com.clinic.ui.dialogs;
 
-import com.clinic.config.AppConfig;
-import com.clinic.model.Department;
-import com.clinic.model.Doctor;
-import com.clinic.model.TimeSlot;
-import com.clinic.service.IDoctorService;
-import com.clinic.service.ValidationException;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.mock.MockClinicData;
+import com.clinic.ui.mock.MockClinicData.DoctorRow;
 import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
+import com.clinic.ui.theme.UIBranding;
 import com.clinic.ui.theme.UIStyle;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.time.DayOfWeek;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
 
 /**
- * Modal dialog for registering a new doctor and associating with a department (FR6, FR7).
+ * Modal UI dialog for Registering a New Clinician Profile.
  */
 public class DoctorDialog extends JDialog {
-    private final IDoctorService doctorService;
     private boolean saved = false;
 
     private JTextField nameField;
     private JTextField specializationField;
     private JTextField qualificationField;
+    private JComboBox<String> departmentCombo;
     private JTextField feeField;
-    private JComboBox<Department> departmentCombo;
 
-    public DoctorDialog(Window owner, IDoctorService doctorService) {
+    public DoctorDialog(Window owner) {
         super(owner, "Register Doctor", ModalityType.APPLICATION_MODAL);
-        this.doctorService = doctorService;
 
         initComponents();
         pack();
@@ -47,7 +38,6 @@ public class DoctorDialog extends JDialog {
         root.setBackground(ThemeColors.BG_LIGHT);
         root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
         JLabel titleLabel = new JLabel("Doctor Registration", IconFactory.getDoctorsIcon(24), SwingConstants.LEFT);
@@ -55,7 +45,7 @@ public class DoctorDialog extends JDialog {
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Enter physician credentials, consultation fee, and department (FR6, FR7)");
+        JLabel subtitleLabel = new JLabel("Enter physician credentials, consultation fee, and department");
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
@@ -63,7 +53,6 @@ public class DoctorDialog extends JDialog {
         headerPanel.add(subtitleLabel, BorderLayout.SOUTH);
         root.add(headerPanel, BorderLayout.NORTH);
 
-        // Form
         JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
@@ -72,27 +61,24 @@ public class DoctorDialog extends JDialog {
 
         nameField = UIStyle.createStyledTextField(24);
         nameField.setText("Dr. ");
-
         specializationField = UIStyle.createStyledTextField(24);
         qualificationField = UIStyle.createStyledTextField(24);
         feeField = UIStyle.createStyledTextField(24);
         feeField.setText("2000.00");
 
-        List<Department> departments = doctorService.getAllDepartments();
-        departmentCombo = new JComboBox<>(departments.toArray(new Department[0]));
+        departmentCombo = new JComboBox<>(MockClinicData.DEPARTMENTS.toArray(new String[0]));
         departmentCombo.setFont(UIStyle.FONT_REGULAR);
         departmentCombo.setBackground(Color.WHITE);
 
         int row = 0;
         addFormRow(form, gbc, row++, "Doctor Full Name *:", nameField);
-        addFormRow(form, gbc, row++, "Specialization *:", specializationField);
-        addFormRow(form, gbc, row++, "Medical Qualifications *:", qualificationField);
-        addFormRow(form, gbc, row++, "Department (FR7) *:", departmentCombo);
-        addFormRow(form, gbc, row++, "Consultation Fee (" + AppConfig.CURRENCY_SYMBOL.trim() + ") *:", feeField);
+        addFormRow(form, gbc, row++, "Specialization:", specializationField);
+        addFormRow(form, gbc, row++, "Medical Qualifications:", qualificationField);
+        addFormRow(form, gbc, row++, "Department:", departmentCombo);
+        addFormRow(form, gbc, row++, "Consultation Fee (" + UIBranding.CURRENCY_SYMBOL.trim() + "):", feeField);
 
         root.add(form, BorderLayout.CENTER);
 
-        // Footer Actions
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         footer.setOpaque(false);
 
@@ -125,39 +111,32 @@ public class DoctorDialog extends JDialog {
 
     private void handleSave() {
         String name = nameField.getText().trim();
-        String spec = specializationField.getText().trim();
-        String qual = qualificationField.getText().trim();
-        String feeStr = feeField.getText().trim();
-        Department dept = (Department) departmentCombo.getSelectedItem();
-
-        double fee;
-        try {
-            fee = Double.parseDouble(feeStr);
-            if (fee < 0) throw new NumberFormatException();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid positive numeric fee.", "Input Error", JOptionPane.ERROR_MESSAGE);
+        if (name.isEmpty() || name.equals("Dr.")) {
+            JOptionPane.showMessageDialog(this, "Please enter a clinician name.", "Input Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
+        String dept = (String) departmentCombo.getSelectedItem();
+        String spec = specializationField.getText().trim();
+        String qual = qualificationField.getText().trim();
+        double fee = 2000.0;
         try {
-            Doctor doctor = doctorService.registerDoctor(name, spec, qual, fee, dept);
-            // Assign standard default schedule (Mon-Fri 9am-12pm)
-            doctorService.setDoctorSchedule(doctor.getDoctorId(),
-                    EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
-                    Arrays.asList(
-                            TimeSlot.of(9, 0, 9, 30),
-                            TimeSlot.of(9, 30, 10, 0),
-                            TimeSlot.of(10, 0, 10, 30),
-                            TimeSlot.of(10, 30, 11, 0),
-                            TimeSlot.of(11, 0, 11, 30)
-                    ));
+            fee = Double.parseDouble(feeField.getText().trim());
+        } catch (NumberFormatException ignored) {}
 
-            JOptionPane.showMessageDialog(this, "Doctor " + doctor.getName() + " registered successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            this.saved = true;
-            dispose();
-        } catch (ValidationException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Validation Failed", JOptionPane.WARNING_MESSAGE);
-        }
+        MockClinicData.getDoctors().add(new DoctorRow(
+                MockClinicData.nextDoctorId(),
+                name,
+                dept != null ? dept : "General Medicine",
+                spec.isEmpty() ? (dept != null ? dept : "General") : spec,
+                qual.isEmpty() ? "MBBS, FCPS" : qual,
+                fee,
+                "MON, TUE, WED, THU, FRI",
+                "AVAILABLE",
+                MockClinicData.STANDARD_SLOTS.subList(0, 6)
+        ));
+
+        this.saved = true;
+        dispose();
     }
 
     public boolean isSaved() {

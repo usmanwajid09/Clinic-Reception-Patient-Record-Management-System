@@ -1,15 +1,14 @@
 package com.clinic.ui;
 
-import com.clinic.config.AppConfig;
-import com.clinic.di.ServiceContainer;
-import com.clinic.model.DoctorUser;
-import com.clinic.model.Role;
-import com.clinic.model.User;
 import com.clinic.ui.animation.Animator;
 import com.clinic.ui.animation.ColorInterpolator;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.mock.MockClinicData.UiRole;
+import com.clinic.ui.mock.MockClinicData.UiUser;
 import com.clinic.ui.panels.*;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
+import com.clinic.ui.theme.UIBranding;
 import com.clinic.ui.theme.UIStyle;
 
 import javax.swing.*;
@@ -21,19 +20,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Main Desktop Application Shell Frame.
- * Enforces strict Role-Based Access Control (RBAC) and privacy boundaries:
- * Clinicians, Receptionists, and Administrators only see modules permitted by their authority.
+ * Main Desktop Application Shell Frame (GUI Presentation Layer).
+ * Features collapsible role-filtered sidebar, header profile dropdown, and dashboard card navigation.
  */
 public class MainApplicationFrame extends JFrame {
-    private final ServiceContainer container;
+    private final UiUser currentUser;
+    private final UiRole currentRole;
     private final CardLayout cardLayout;
     private final JPanel contentCards;
     private final Map<String, NavButton> navButtons = new HashMap<>();
 
-    private String activeCardKey;
+    private JPanel sidebar;
+    private JPanel brandBox;
+    private JLabel versionLabel;
+    private boolean sidebarCollapsed = false;
 
-    // Component Panels
+    // UI Panels
+    private DashboardHomePanel dashboardPanel;
     private PatientManagementPanel patientPanel;
     private DoctorManagementPanel doctorPanel;
     private AppointmentManagementPanel appointmentPanel;
@@ -41,17 +44,16 @@ public class MainApplicationFrame extends JFrame {
     private BillingManagementPanel billingPanel;
     private ReportsPanel reportsPanel;
 
-    private JLabel userStatusLabel;
-
-    public MainApplicationFrame(ServiceContainer container) {
-        this.container = container;
+    public MainApplicationFrame(UiUser currentUser) {
+        this.currentUser = currentUser;
+        this.currentRole = currentUser != null ? currentUser.role() : UiRole.RECEPTIONIST;
         this.cardLayout = new CardLayout();
         this.contentCards = new JPanel(cardLayout);
 
-        setTitle(AppConfig.CLINIC_NAME + " - Enterprise Clinic Management System");
-        setIconImage(com.clinic.ui.theme.IconFactory.getClinicLogo(64).getImage());
+        setTitle(UIBranding.CLINIC_NAME + " - Desktop Workspace");
+        setIconImage(IconFactory.getClinicLogo(64).getImage());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(AppConfig.APP_WIDTH, AppConfig.APP_HEIGHT);
+        setSize(UIBranding.APP_WIDTH, UIBranding.APP_HEIGHT);
         setMinimumSize(new Dimension(1040, 700));
 
         initComponents();
@@ -62,47 +64,39 @@ public class MainApplicationFrame extends JFrame {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(ThemeColors.BG_LIGHT);
 
-        User currentUser = container.getAuthService().getCurrentUser().orElse(null);
-        Role role = currentUser != null ? currentUser.getRole() : Role.RECEPTIONIST;
-
-        // 1. Sidebar Navigation (Filtered strictly by Role)
-        JPanel sidebar = createSidebar(currentUser, role);
+        // 1. Collapsible Role-Filtered Sidebar
+        sidebar = createSidebar();
         root.add(sidebar, BorderLayout.WEST);
 
         // 2. Top Header Bar
-        JPanel headerBar = createHeaderBar(currentUser, role);
+        JPanel headerBar = createHeaderBar();
         root.add(headerBar, BorderLayout.NORTH);
 
-        // 3. Central Card Container (Instantiate only authorized panels)
-        buildAuthorizedPanels(role);
+        // 3. Central Card Container
+        buildAuthorizedPanels();
         root.add(contentCards, BorderLayout.CENTER);
 
         setContentPane(root);
-
-        // Select initial default card based on authenticated role
-        selectInitialCardForRole(role);
+        showCard("DASHBOARD");
     }
 
-    private void buildAuthorizedPanels(Role role) {
-        switch (role) {
+    private void buildAuthorizedPanels() {
+        dashboardPanel = new DashboardHomePanel(currentUser, this::showCard);
+        contentCards.add(dashboardPanel, "DASHBOARD");
+
+        switch (currentRole) {
             case DOCTOR -> {
-                // Doctor only accesses Clinical Workstation and their own Appointment Queue
-                consultationPanel = new DoctorConsultationPanel(container.getConsultationService(),
-                        container.getAppointmentService(), container.getPatientService(),
-                        container.getDoctorService(), container.getAuthService());
-                appointmentPanel = new AppointmentManagementPanel(container.getAppointmentService(),
-                        container.getDoctorService(), container.getPatientService(), container.getAuthService());
+                consultationPanel = new DoctorConsultationPanel(currentUser);
+                appointmentPanel = new AppointmentManagementPanel(currentUser);
 
                 contentCards.add(consultationPanel, "CONSULTATIONS");
                 contentCards.add(appointmentPanel, "APPOINTMENTS");
             }
             case RECEPTIONIST -> {
-                // Receptionist accesses Front-Desk Patient Intake, Doctor Directory, Appointments, and Billing
-                patientPanel = new PatientManagementPanel(container.getPatientService(), container.getDoctorService(), container.getAuthService());
-                doctorPanel = new DoctorManagementPanel(container.getDoctorService(), container.getAuthService());
-                appointmentPanel = new AppointmentManagementPanel(container.getAppointmentService(),
-                        container.getDoctorService(), container.getPatientService(), container.getAuthService());
-                billingPanel = new BillingManagementPanel(container.getBillingService(), container.getPatientService(), container.getDoctorService());
+                patientPanel = new PatientManagementPanel(currentRole);
+                doctorPanel = new DoctorManagementPanel(currentRole);
+                appointmentPanel = new AppointmentManagementPanel(currentUser);
+                billingPanel = new BillingManagementPanel();
 
                 contentCards.add(patientPanel, "PATIENTS");
                 contentCards.add(doctorPanel, "DOCTORS");
@@ -110,12 +104,10 @@ public class MainApplicationFrame extends JFrame {
                 contentCards.add(billingPanel, "BILLING");
             }
             case ADMINISTRATOR -> {
-                // Administrator accesses Doctor Setup & Schedule, Clinic Analytics Reports, and Audit Views
-                doctorPanel = new DoctorManagementPanel(container.getDoctorService(), container.getAuthService());
-                reportsPanel = new ReportsPanel(container.getReportService(), container.getPatientService(), container.getDoctorService());
-                patientPanel = new PatientManagementPanel(container.getPatientService(), container.getDoctorService(), container.getAuthService());
-                appointmentPanel = new AppointmentManagementPanel(container.getAppointmentService(),
-                        container.getDoctorService(), container.getPatientService(), container.getAuthService());
+                doctorPanel = new DoctorManagementPanel(currentRole);
+                reportsPanel = new ReportsPanel();
+                patientPanel = new PatientManagementPanel(currentRole);
+                appointmentPanel = new AppointmentManagementPanel(currentUser);
 
                 contentCards.add(doctorPanel, "DOCTORS");
                 contentCards.add(reportsPanel, "REPORTS");
@@ -125,55 +117,68 @@ public class MainApplicationFrame extends JFrame {
         }
     }
 
-    private void selectInitialCardForRole(Role role) {
-        switch (role) {
-            case DOCTOR -> showCard("CONSULTATIONS");
-            case RECEPTIONIST -> showCard("PATIENTS");
-            case ADMINISTRATOR -> showCard("DOCTORS");
-        }
-    }
-
-    private JPanel createHeaderBar(User currentUser, Role role) {
+    private JPanel createHeaderBar() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(ThemeColors.SURFACE);
         header.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, ThemeColors.BORDER),
-                new EmptyBorder(12, 24, 12, 24)
+                new EmptyBorder(10, 20, 10, 24)
         ));
 
-        // Clinic Branding
+        // Left: Hamburger toggle + Clinic Branding
         JPanel titleBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         titleBox.setOpaque(false);
-        JLabel clinicTitle = new JLabel("  " + AppConfig.CLINIC_NAME, com.clinic.ui.theme.IconFactory.getClinicLogo(28), JLabel.LEFT);
+
+        ModernButton collapseBtn = ModernButton.secondary("☰");
+        collapseBtn.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+        collapseBtn.setPreferredSize(new Dimension(40, 36));
+        collapseBtn.setToolTipText("Toggle Sidebar");
+        collapseBtn.addActionListener(e -> toggleSidebar());
+
+        JLabel clinicTitle = new JLabel(" " + UIBranding.CLINIC_NAME, IconFactory.getClinicLogo(28), JLabel.LEFT);
         clinicTitle.setFont(UIStyle.FONT_HEADER);
         clinicTitle.setForeground(ThemeColors.PRIMARY_DARK);
 
-        JLabel tagLabel = new JLabel("|  " + AppConfig.CLINIC_TAGLINE);
+        JLabel tagLabel = new JLabel("|  " + UIBranding.CLINIC_TAGLINE);
         tagLabel.setFont(UIStyle.FONT_SMALL);
         tagLabel.setForeground(ThemeColors.TEXT_MUTED);
 
+        titleBox.add(collapseBtn);
         titleBox.add(clinicTitle);
         titleBox.add(tagLabel);
 
-        // User Profile & Role Switching
-        JPanel userBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
+        // Right: User Profile Dropdown + Switch Role Button
+        JPanel userBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         userBox.setOpaque(false);
 
-        String userDisplay = currentUser != null ? currentUser.getFullName() : "Guest";
-        ImageIcon userIcon = switch (role) {
-            case DOCTOR -> com.clinic.ui.theme.IconFactory.getDoctorsIcon(24);
-            case RECEPTIONIST -> com.clinic.ui.theme.IconFactory.getPatientsIcon(24);
-            case ADMINISTRATOR -> com.clinic.ui.theme.IconFactory.getReportsIcon(24);
+        String userDisplay = currentUser != null ? currentUser.fullName() : "Guest";
+        ImageIcon userIcon = switch (currentRole) {
+            case DOCTOR -> IconFactory.getDoctorsIcon(24);
+            case RECEPTIONIST -> IconFactory.getPatientsIcon(24);
+            case ADMINISTRATOR -> IconFactory.getReportsIcon(24);
         };
-        userStatusLabel = new JLabel(userDisplay, userIcon, JLabel.LEFT);
-        userStatusLabel.setIconTextGap(8);
-        userStatusLabel.setFont(UIStyle.FONT_BOLD);
-        userStatusLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        ModernButton switchRoleBtn = ModernButton.secondary("Switch Profile / Logout");
-        switchRoleBtn.addActionListener(e -> handleSwitchRole());
+        JPopupMenu profileMenu = new JPopupMenu();
+        JMenuItem dashItem = new JMenuItem("Dashboard Home");
+        dashItem.addActionListener(e -> showCard("DASHBOARD"));
+        JMenuItem switchItem = new JMenuItem("Switch Role");
+        switchItem.addActionListener(e -> handleSwitchRole());
+        JMenuItem logoutItem = new JMenuItem("Sign Out");
+        logoutItem.addActionListener(e -> handleLogoutToRoleSelect());
+        profileMenu.add(dashItem);
+        profileMenu.add(switchItem);
+        profileMenu.addSeparator();
+        profileMenu.add(logoutItem);
 
-        userBox.add(userStatusLabel);
+        ModernButton profileDropdownBtn = ModernButton.secondary(userDisplay + " ▾");
+        profileDropdownBtn.setIcon(userIcon);
+        profileDropdownBtn.setIconTextGap(8);
+        profileDropdownBtn.addActionListener(e -> profileMenu.show(profileDropdownBtn, 0, profileDropdownBtn.getHeight()));
+
+        ModernButton switchRoleBtn = new ModernButton("Switch Profile");
+        switchRoleBtn.addActionListener(e -> handleLogoutToRoleSelect());
+
+        userBox.add(profileDropdownBtn);
         userBox.add(switchRoleBtn);
 
         header.add(titleBox, BorderLayout.WEST);
@@ -182,14 +187,14 @@ public class MainApplicationFrame extends JFrame {
         return header;
     }
 
-    private JPanel createSidebar(User currentUser, Role role) {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(ThemeColors.SIDEBAR_BG);
-        sidebar.setPreferredSize(new Dimension(250, getHeight()));
-        sidebar.setBorder(new EmptyBorder(22, 14, 20, 14));
+    private JPanel createSidebar() {
+        JPanel sb = new JPanel(new BorderLayout());
+        sb.setBackground(ThemeColors.SIDEBAR_BG);
+        sb.setPreferredSize(new Dimension(250, getHeight()));
+        sb.setBorder(new EmptyBorder(22, 14, 20, 14));
 
         // Brand Banner
-        JPanel brandBox = new JPanel();
+        brandBox = new JPanel();
         brandBox.setLayout(new BoxLayout(brandBox, BoxLayout.Y_AXIS));
         brandBox.setOpaque(false);
 
@@ -197,80 +202,92 @@ public class MainApplicationFrame extends JFrame {
         brandName.setFont(new Font("Segoe UI", Font.BOLD, 15));
         brandName.setForeground(ThemeColors.PRIMARY_LIGHT);
 
-        JLabel sdaLabel = new JLabel("SDA Healthcare Suite");
-        sdaLabel.setFont(UIStyle.FONT_SMALL);
-        sdaLabel.setForeground(ThemeColors.TEXT_MUTED);
+        JLabel subLabel = new JLabel("Healthcare Suite UI");
+        subLabel.setFont(UIStyle.FONT_SMALL);
+        subLabel.setForeground(ThemeColors.TEXT_MUTED);
 
-        // Role Badge Pill
         JPanel badgePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         badgePanel.setOpaque(false);
-        JLabel roleBadge = new JLabel("  " + role.getDisplayName().toUpperCase() + " SESSION  ");
+        JLabel roleBadge = new JLabel("  " + currentRole.getDisplayName().toUpperCase() + " PORTAL  ");
         roleBadge.setFont(new Font("Segoe UI", Font.BOLD, 10));
         roleBadge.setOpaque(true);
         roleBadge.setBorder(new EmptyBorder(3, 8, 3, 8));
 
-        if (role == Role.DOCTOR) {
+        if (currentRole == UiRole.DOCTOR) {
             roleBadge.setBackground(new Color(13, 148, 136));
             roleBadge.setForeground(Color.WHITE);
-        } else if (role == Role.RECEPTIONIST) {
+        } else if (currentRole == UiRole.RECEPTIONIST) {
             roleBadge.setBackground(new Color(2, 132, 199));
             roleBadge.setForeground(Color.WHITE);
         } else {
             roleBadge.setBackground(new Color(124, 58, 237));
             roleBadge.setForeground(Color.WHITE);
         }
-
         badgePanel.add(roleBadge);
 
         brandBox.add(brandName);
         brandBox.add(Box.createVerticalStrut(2));
-        brandBox.add(sdaLabel);
+        brandBox.add(subLabel);
         brandBox.add(Box.createVerticalStrut(8));
         brandBox.add(badgePanel);
-        brandBox.add(Box.createVerticalStrut(24));
+        brandBox.add(Box.createVerticalStrut(22));
 
-        sidebar.add(brandBox, BorderLayout.NORTH);
+        sb.add(brandBox, BorderLayout.NORTH);
 
-        // Dynamic Role-Filtered Navigation Menu
+        // Role-Filtered Navigation Menu
         JPanel navMenu = new JPanel();
         navMenu.setLayout(new BoxLayout(navMenu, BoxLayout.Y_AXIS));
         navMenu.setOpaque(false);
 
-        switch (role) {
+        addNavButton(navMenu, "DASHBOARD", "Dashboard", IconFactory.getClinicLogo(24));
+
+        switch (currentRole) {
             case DOCTOR -> {
-                addNavButton(navMenu, "CONSULTATIONS", "Clinical Workstation", com.clinic.ui.theme.IconFactory.getWorkstationIcon(24));
-                addNavButton(navMenu, "APPOINTMENTS", "My Appointments", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
+                addNavButton(navMenu, "CONSULTATIONS", "Clinical Workstation", IconFactory.getWorkstationIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "My Appointments", IconFactory.getAppointmentsIcon(24));
             }
             case RECEPTIONIST -> {
-                addNavButton(navMenu, "PATIENTS", "Patient Records", com.clinic.ui.theme.IconFactory.getPatientsIcon(24));
-                addNavButton(navMenu, "DOCTORS", "Doctor Directory", com.clinic.ui.theme.IconFactory.getDoctorsIcon(24));
-                addNavButton(navMenu, "APPOINTMENTS", "Appointment Desk", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
-                addNavButton(navMenu, "BILLING", "Billing & Receipts", com.clinic.ui.theme.IconFactory.getBillingIcon(24));
+                addNavButton(navMenu, "PATIENTS", "Patient Records", IconFactory.getPatientsIcon(24));
+                addNavButton(navMenu, "DOCTORS", "Doctor Directory", IconFactory.getDoctorsIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "Appointment Desk", IconFactory.getAppointmentsIcon(24));
+                addNavButton(navMenu, "BILLING", "Billing & Receipts", IconFactory.getBillingIcon(24));
             }
             case ADMINISTRATOR -> {
-                addNavButton(navMenu, "DOCTORS", "Doctor Management", com.clinic.ui.theme.IconFactory.getDoctorsIcon(24));
-                addNavButton(navMenu, "REPORTS", "Analytics & Revenue", com.clinic.ui.theme.IconFactory.getReportsIcon(24));
-                addNavButton(navMenu, "PATIENTS", "Patient Directory", com.clinic.ui.theme.IconFactory.getPatientsIcon(24));
-                addNavButton(navMenu, "APPOINTMENTS", "Clinic Appointments", com.clinic.ui.theme.IconFactory.getAppointmentsIcon(24));
+                addNavButton(navMenu, "DOCTORS", "Doctor Management", IconFactory.getDoctorsIcon(24));
+                addNavButton(navMenu, "REPORTS", "Analytics & Revenue", IconFactory.getReportsIcon(24));
+                addNavButton(navMenu, "PATIENTS", "Patient Directory", IconFactory.getPatientsIcon(24));
+                addNavButton(navMenu, "APPOINTMENTS", "Clinic Appointments", IconFactory.getAppointmentsIcon(24));
             }
         }
 
-        sidebar.add(navMenu, BorderLayout.CENTER);
+        sb.add(navMenu, BorderLayout.CENTER);
 
-        // Bottom Footer
+        // Footer
         JPanel bottomBox = new JPanel(new BorderLayout());
         bottomBox.setOpaque(false);
-        JLabel versionLabel = new JLabel("Role: " + role.getDisplayName());
+        versionLabel = new JLabel("Role: " + currentRole.getDisplayName());
         versionLabel.setFont(UIStyle.FONT_SMALL);
         versionLabel.setForeground(ThemeColors.TEXT_MUTED);
         bottomBox.add(versionLabel, BorderLayout.SOUTH);
-        sidebar.add(bottomBox, BorderLayout.SOUTH);
+        sb.add(bottomBox, BorderLayout.SOUTH);
 
-        return sidebar;
+        return sb;
+    }
+
+    private void toggleSidebar() {
+        sidebarCollapsed = !sidebarCollapsed;
+        sidebar.setPreferredSize(new Dimension(sidebarCollapsed ? 76 : 250, getHeight()));
+        brandBox.setVisible(!sidebarCollapsed);
+        versionLabel.setVisible(!sidebarCollapsed);
+        for (NavButton btn : navButtons.values()) {
+            btn.setCompactMode(sidebarCollapsed);
+        }
+        sidebar.revalidate();
+        sidebar.repaint();
     }
 
     private void addNavButton(JPanel containerPanel, String cardKey, String text, Icon icon) {
-        NavButton btn = new NavButton(text, cardKey, icon);
+        NavButton btn = new NavButton(text, icon);
         btn.addActionListener(e -> showCard(cardKey));
 
         navButtons.put(cardKey, btn);
@@ -279,16 +296,12 @@ public class MainApplicationFrame extends JFrame {
     }
 
     public void showCard(String cardKey) {
-        this.activeCardKey = cardKey;
         cardLayout.show(contentCards, cardKey);
 
-        // Update active nav styling across buttons
         for (Map.Entry<String, NavButton> entry : navButtons.entrySet()) {
-            boolean isActive = entry.getKey().equals(cardKey);
-            entry.getValue().setActive(isActive);
+            entry.getValue().setActive(entry.getKey().equals(cardKey));
         }
 
-        // Refresh panels on view switch
         if ("PATIENTS".equals(cardKey) && patientPanel != null) {
             patientPanel.loadPatients();
         } else if ("DOCTORS".equals(cardKey) && doctorPanel != null) {
@@ -307,8 +320,16 @@ public class MainApplicationFrame extends JFrame {
     private void handleSwitchRole() {
         dispose();
         SwingUtilities.invokeLater(() -> {
-            LoginFrame loginFrame = new LoginFrame(container);
+            LoginFrame loginFrame = new LoginFrame(currentRole);
             loginFrame.setVisible(true);
+        });
+    }
+
+    private void handleLogoutToRoleSelect() {
+        dispose();
+        SwingUtilities.invokeLater(() -> {
+            RoleSelectFrame roleSelect = new RoleSelectFrame();
+            roleSelect.setVisible(true);
         });
     }
 
@@ -316,14 +337,15 @@ public class MainApplicationFrame extends JFrame {
      * Custom animated sidebar navigation button with smooth hover interpolation.
      */
     private static class NavButton extends JButton {
-        private final String cardKey;
+        private final String fullText;
         private boolean isActive = false;
         private float hoverProgress = 0.0f;
         private Timer animTimer;
 
-        public NavButton(String text, String cardKey, Icon icon) {
+        public NavButton(String text, Icon icon) {
             super(text);
-            this.cardKey = cardKey;
+            this.fullText = text;
+            setToolTipText(text);
 
             if (icon != null) {
                 setIcon(icon);
@@ -333,17 +355,13 @@ public class MainApplicationFrame extends JFrame {
             setFont(UIStyle.FONT_BOLD);
             setForeground(ThemeColors.TEXT_ON_DARK);
             setHorizontalAlignment(SwingConstants.LEFT);
-            setBorder(new EmptyBorder(11, 16, 11, 16));
+            setBorder(new EmptyBorder(11, 14, 11, 14));
             setFocusPainted(false);
             setContentAreaFilled(false);
             setOpaque(false);
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
             setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            initHoverAnimation();
-        }
-
-        private void initHoverAnimation() {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -355,6 +373,12 @@ public class MainApplicationFrame extends JFrame {
                     if (!isActive) animateHover(0.0f);
                 }
             });
+        }
+
+        public void setCompactMode(boolean compact) {
+            setText(compact ? "" : fullText);
+            setHorizontalAlignment(compact ? SwingConstants.CENTER : SwingConstants.LEFT);
+            setBorder(new EmptyBorder(11, compact ? 0 : 14, 11, compact ? 0 : 14));
         }
 
         private void animateHover(float target) {
@@ -386,11 +410,9 @@ public class MainApplicationFrame extends JFrame {
             int h = getHeight();
 
             if (isActive) {
-                // Active pill background
                 g2.setColor(ThemeColors.SIDEBAR_ACTIVE);
                 g2.fillRoundRect(0, 0, w, h, 8, 8);
             } else if (hoverProgress > 0.02f) {
-                // Smooth hover transition
                 Color hoverBg = ColorInterpolator.blend(ThemeColors.SIDEBAR_BG, ThemeColors.SIDEBAR_HOVER, hoverProgress);
                 g2.setColor(hoverBg);
                 g2.fillRoundRect(0, 0, w, h, 8, 8);

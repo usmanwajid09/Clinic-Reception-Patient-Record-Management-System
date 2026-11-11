@@ -1,7 +1,8 @@
 package com.clinic.ui.dialogs;
 
-import com.clinic.model.PrescriptionItem;
 import com.clinic.ui.components.ModernButton;
+import com.clinic.ui.mock.MockClinicData.RxItemRow;
+import com.clinic.ui.theme.IconFactory;
 import com.clinic.ui.theme.ThemeColors;
 import com.clinic.ui.theme.UIStyle;
 
@@ -10,11 +11,10 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Modal dialog for entering prescribed medicine details (FR20, FR21).
- * Records medicine name, dosage, frequency, and duration.
+ * Modal UI dialog for composing a medication entry in the prescription table.
  */
 public class PrescriptionItemDialog extends JDialog {
-    private PrescriptionItem createdItem;
+    private RxItemRow createdItem;
 
     private JTextField medicineNameField;
     private JTextField dosageField;
@@ -35,14 +35,14 @@ public class PrescriptionItemDialog extends JDialog {
         root.setBackground(ThemeColors.BG_LIGHT);
         root.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // Header
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Prescribe Medication");
+        JLabel titleLabel = new JLabel("Prescribe Medication", IconFactory.getWorkstationIcon(24), SwingConstants.LEFT);
+        titleLabel.setIconTextGap(10);
         titleLabel.setFont(UIStyle.FONT_TITLE);
         titleLabel.setForeground(ThemeColors.TEXT_PRIMARY);
 
-        JLabel subtitleLabel = new JLabel("Specify medicine name, dosage, frequency, and duration (FR21)");
+        JLabel subtitleLabel = new JLabel("Specify medicine name, dosage, frequency, and duration");
         subtitleLabel.setFont(UIStyle.FONT_SMALL);
         subtitleLabel.setForeground(ThemeColors.TEXT_SECONDARY);
 
@@ -50,7 +50,6 @@ public class PrescriptionItemDialog extends JDialog {
         headerPanel.add(subtitleLabel, BorderLayout.SOUTH);
         root.add(headerPanel, BorderLayout.NORTH);
 
-        // Form
         JPanel card = UIStyle.createCard();
         card.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -58,8 +57,6 @@ public class PrescriptionItemDialog extends JDialog {
         gbc.insets = new Insets(6, 6, 6, 6);
 
         medicineNameField = UIStyle.createStyledTextField(20);
-        medicineNameField.setToolTipText("e.g. Amoxicillin 500mg, Paracetamol 650mg");
-
         dosageField = UIStyle.createStyledTextField(20);
         dosageField.setText("1 Tablet");
 
@@ -83,13 +80,12 @@ public class PrescriptionItemDialog extends JDialog {
         int row = 0;
         addFormRow(card, gbc, row++, "Medicine Name *:", medicineNameField);
         addFormRow(card, gbc, row++, "Dosage *:", dosageField);
-        addFormRow(card, gbc, row++, "Frequency *:", frequencyCombo);
-        addFormRow(card, gbc, row++, "Duration *:", durationField);
+        addFormRow(card, gbc, row++, "Frequency:", frequencyCombo);
+        addFormRow(card, gbc, row++, "Duration:", durationField);
         addFormRow(card, gbc, row++, "Instructions:", instructionsField);
 
         root.add(card, BorderLayout.CENTER);
 
-        // Footer Actions
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         footer.setOpaque(false);
 
@@ -122,21 +118,21 @@ public class PrescriptionItemDialog extends JDialog {
 
     private void handleAdd() {
         String name = medicineNameField.getText().trim();
-        String dosage = dosageField.getText().trim();
-        String frequency = (String) frequencyCombo.getSelectedItem();
-        String duration = durationField.getText().trim();
-        String instructions = instructionsField.getText().trim();
-
-        if (name.isEmpty() || dosage.isEmpty() || duration.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Medicine Name, Dosage, and Duration are mandatory.", "Input Error", JOptionPane.ERROR_MESSAGE);
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a medicine name.", "Input Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        this.createdItem = new PrescriptionItem(name, dosage, frequency, duration, instructions);
+        this.createdItem = new RxItemRow(
+                name,
+                dosageField.getText().trim(),
+                (String) frequencyCombo.getSelectedItem(),
+                durationField.getText().trim(),
+                instructionsField.getText().trim()
+        );
         dispose();
     }
 
-    public PrescriptionItem getCreatedItem() {
+    public RxItemRow getCreatedItem() {
         return createdItem;
     }
 }
